@@ -2,19 +2,19 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>文章-HisenKing</title>
+<title>{{ page.title  }}</title>
 <link type="text/css" href="{{ site:url }}/css/style.css" rel="stylesheet" />
 </head>
 
 <body>
 <div id="top">
-	<div class="head"><a href="#"><img src="{{ site:url }}/images/logo.gif" /></a></div>
+	<div class="head"><a href="{{ site:url  }}"><img src="{{ site:url }}/images/logo.gif" /></a></div>
     <div class="menu">
     	<ul><li><img src="{{ site:url }}/images/home.gif" width="39" height="33" /></li><li ><a href="#" class="about">关于我</a></li></ul>
     </div>
 </div>
 <div class="neiye_main">
-	<div class="location"><img src="{{ site:url }}/images/arrow2.gif" width="17" height="14" /> 首页 > 文章列表</div>
+	<div class="location"><img src="{{ site:url }}/images/arrow2.gif" width="17" height="14" /> <a href="{{ site:url  }}">首页</a> > {{ page.title  }}</div>
     <dl class="content">
     	<dt>
     	<h2>{{ page.title  }}</h2>  
