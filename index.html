@@ -5,7 +5,7 @@ title: 金海鑫的日志
 
 <div id="main">
     <div class="article">
-        {% for post in site.posts %}
+        {% for post in paginator.posts %}
     	<dl onmouseover="this.className='dl_bg_h'" onmouseout="this.className='dl_bg'" class="dl_bg">
         	<dt><img src="{{ site:url }}/images/arrow.gif" width="14" height="13" /> <a href="{{ site:url  }}{{ post.url  }}" target="_blank">{{post.title}}</a><span class="gray_12">({{ post.date | date:"%Y-%m-%d"  }})</span></dt>
             <dd>
