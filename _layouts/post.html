@@ -1,36 +1,21 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<title>文章-HisenKing</title>
-<link type="text/css" href="{{ site:url }}/css/style.css" rel="stylesheet" />
-</head>
-
-<body>
-<div id="top">
-	<div class="head"><a href="{{ site:url }}"><img src="{{ site:url }}/images/logo.gif" /></a></div>
-    <div class="menu">
-    	<ul><li><a href="{{ site:url }}"><img src="{{ site:url }}/images/home.gif" width="39" height="33" /></a></li><li ><a href="{{ site:url }}/aboutme/me.html" class="about">关于我</a></li></ul>
-    </div>
-</div>
+{% include header.html  %}
 <div class="neiye_main">
-	<div class="location"><img src="{{ site:url }}/images/arrow2.gif" width="17" height="14" /> <a href="{{ site:url }}">首页</a> > {{ page.title }}</div>
-    <dl class="content">
-    	<dt>
-    	<h2>{{ page.title }}</h2>  
-        <h3><img src="{{ site:url }}/images/date.gif" width="14" height="16" /> {{ page.date | date:"%Y-%m-%d"  }} &nbsp;
-        <img  src="{{ site:url }}/images/man.gif" width="14" height="14" /> hisenKing  </h3>
-        </dt>
-        <dd>
-            {{ content }}
-        </dd>
-	</dl>
-</div>
-<div id="foot">
-	<div class="foot_msg">
-        Copyright © 2011-2013 HisenKing<br />
-        Theme by NeoEase. Valid XHTML 1.1 and CSS 3.
+    <div class="left">
+        <div class="location"><img src="{{ site:url }}/images/arrow2.gif" width="17" height="14" /> <a href="{{ site:url }}">首页</a> > {{ page.title }}</div>
+        <dl class="content">
+            <dt>
+            <h2>{{ page.title }}</h2>  
+            <h3><img src="{{ site:url }}/images/date.gif" width="14" height="16" /> {{ page.date | date:"%Y-%m-%d"  }} &nbsp;
+            <img  src="{{ site:url }}/images/man.gif" width="14" height="14" /> hisenKing  </h3>
+            </dt>
+            <dd>
+                {{ content }}
+            </dd>
+        </dl>
     </div>
+    <div class="right">     	
+        {% include side_weiboshow.html  %}
+        {% include side_categorys.html  %}
+     </div>
 </div>
-</body>
-</html>
+{% include footer.html  %}

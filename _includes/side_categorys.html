@@ -1,0 +1,6 @@
+<dl>
+    <dt>文章分类</dt>
+    {% for category in site.categories  %}
+    <dd><img src="{{ site:url }}/images/dian.gif" /> <a href="{{ site.url }}/categorys/{{ category | first  }}.html">{{ category | first  }}</a><span class="gray_12">({{ category | last | size  }})</span></dd>
+    {% endfor  %}
+</dl>
