@@ -1,0 +1,23 @@
+---
+layout: post
+title: 关于php chmod的相关知识
+category: php
+keywords: php,chmod
+---
+
+<p>php给一个文件修改权限的函数chmod</p>
+<p>bool <strong>chmod</strong> ( string <tt>$filename</tt> , int <tt>$mode</tt> )</p>
+<p>其中的参数mode是需要八进制的，<br />
+首先看看php手册中的描述：<br />
+注意 mode 不会被自动当成八进制数值，而且也不能用字符串（例如 &#8220;g+w&#8221;）。要确保正确操作，需要给 mode 前面加上 0： </p>
+<pre>
+&lt;?php
+chmod(&quot;/somedir/somefile&quot;, 755);   // 十进制数，可能不对
+chmod(&quot;/somedir/somefile&quot;, &quot;u+rwx,go+rx&quot;); // 字符串，不对
+chmod(&quot;/somedir/somefile&quot;, 0755);  // 八进制数，正确的 mode 值
+?&gt;
+</pre>
+<p>其中很多人不知道为什么前面要加零，八进制的4000和2000两位是setuid位和setgid位。<br />
+如果可执行文件上设置这两位，那么它们能让程序访问运行它们的用户本来无权访问的文件和进程；在某个目录上设置了setgid位以后，在这个目录中新创建的文件具有该目录的属组权限而不是创建该文件的用户的默认权限。<br />
+八进制的1000位叫做“粘附位”。如果在目录上设置了这个粘附位，那么除非是该目录属主，该文件的属主或者是超级管理员，否则文件系统不会允许删除或重命名该目录中的文件。在这个目录上拥有写入权限是不够的。<br />
+而0755这里的0即代表没有特殊设置。</p>

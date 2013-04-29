@@ -1,0 +1,173 @@
+---
+layout: post
+title: php网站实现https加密访问，wamp下配置openssl手记
+category: apache
+keywords: apache配置openssl
+---
+
+<p>所做的项目基本上都是内部使用的且敏感的数据。因此项目都是基于lamp上使用了ssl双向认证访问CRM。</p>
+
+<p>安装环境：Wampserver集成安装包；window7系统。openssl.exe所在集成包的位置为D:\wamp5.3\bin\apache\Apache2.2.21\bin。</p>
+
+<p>步骤如下：</p>
+
+<p>1.指明配置文件。</p>
+
+<pre>set OPENSSL_CONF=../conf/openssl.cnf</pre>
+
+<p>2.进入上面的目录，生成需要的私钥key</p>
+
+<p><a href="{{ site:url }}/uploads/2012/10/key.png"><img class="alignnone size-full wp-image-566" title="key" src="{{ site:url }}/uploads/2012/10/key.png" alt="生成私钥文件" width="396" height="98"></a></p>
+
+<pre>openssl genrsa &gt; root.key&nbsp;&nbsp; // 生成根密钥
+openssl genrsa &gt; server.key&nbsp; // 生成服务端密钥
+openssl genrsa &gt; client.key&nbsp; // 生成客户端密钥</pre>
+
+<p>3.生成自签名的根证书</p>
+
+<pre>openssl req -x509 -new -key root.key &gt;root.crt</pre>
+
+<p>-new 生成一个新的文件
+-key filename 参数filename指明我们的私有密钥文件名
+-x509 将产生自签名的证书，一般用来测试用，或者自己玩下做个Root CA.证书的扩展在config文件里面指定
+
+4.生成服务端，客户端签名请求文件</p>
+
+<p><a href="{{ site:url }}/uploads/2012/10/csr.png"><img class="alignnone size-full wp-image-567" title="csr" src="{{ site:url }}/uploads/2012/10/csr.png" alt="生成请求签名文件" width="610" height="322"></a></p>
+
+<pre>openssl req -new -key server.key -out server.csr
+openssl req -new -key client.key -out client.csr</pre>
+
+<p>按提示输入一系列的参数，</p>
+
+<pre>Country Name (2 letter code) [AU]:CNISO国家代码（只支持两位字符）
+State or Province Name (full name) [Some-State]:ZJ所在省份
+Locality Name (eg, city) []:HZ所在城市
+Organization Name (eg, company):THS公司名称
+Organizational Unit Name (eg, section) []:THS组织名称
+Common Name (eg, YOUR name) []:localhost(申请证书的域名或IP地址)
+Email Address []:laoniangke@xxx.com管理员邮箱
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:交换密钥
+An optional company name []:</pre>
+
+<p>5.使用根证书为服务端及客户端签名</p>
+
+<p><a href="{{ site:url }}/uploads/2012/10/crt.png"><img class="alignnone size-full wp-image-568" title="crt" src="{{ site:url }}/uploads/2012/10/crt.png" alt="生成签名证书" width="640" height="142"></a>
+openssl的ca指令用途：模拟CA行为的工具，有了它，你就是一个CA，不过估计是nobody trusted CA。可以用来给各种格式的CSR签名，用来产生和维护CRL（证书回收列，详细记录了所有的作废证书），他还维护者一个文本数据库，记录了所有经手颁发 的证书及那些证书的状态（会在配置信息指定的目录生成pem文件）。</p>
+
+<pre>openssl ca -in server.csr -cert root.crt -keyfile root.key -out server.crt
+openssl ca -in client.csr -cert root.crt -keyfile root.key -out client.crt</pre>
+
+<p>-in filename要签名的csr文件
+-cert CA本身的证书文件名
+-keyfile CA自己的私有密钥文件
+-out filename签名后的证书文件名。证书的细节也会给写进去</p>
+
+<p>这里返回了一个ERROR,如下描述：</p>
+
+<pre>Using configuration from ../conf/openssl.cnf
+Error opening CA private key ./demoCa/private/cakey.pem
+3528:error:02001003:system library:fopen:No such proccess:.\crypto\bio\bss_file.c:352:fopen('./demoCa/private/cakey.pem','rb')
+3528:error:20074002:BIO routines:FILE_CTRL:system lib:\crypto\bio\bss_file.c:354:
+unable to load CA private key</pre>
+
+<p>提示缺少./demoCa/private/cakey.pem,进入../conf/openssl.cnf查看配置，缺少很多文件。并谷歌查看 具体错误，看别人如何获取生成cakey.pem这个文件。具体可以查看这个地址http://kamailio.org/docs/modules /stable/modules/tls.html解决错误的信息如下：</p>
+
+<pre>Creating CA certificate
+-----------------------
+1. create CA dir
+mkdir ca
+cd ca
+
+2. create ca dir structure and files&nbsp; (see ca(1))
+mkdir demoCA #default CA name, edit /etc/ss/openssl.cnf
+mkdir&nbsp; demoCA/private
+mkdir demoCA/newcerts
+touch demoCA/index.txt
+echo 01 &gt;demoCA/serial
+echo 01 &gt;demoCA/crlnumber
+
+2. create CA private key
+openssl genrsa -out demoCA/private/cakey.pem 2048
+chmod 600 demoCA/private/cakey.pem
+
+3. create CA self-signed certificate
+openssl req -out demoCA/cacert.pem&nbsp;&nbsp; -x509 -new -key demoCA/private/cakey.pem</pre>
+
+<p>6.根据上面的说明信息，配置openssl.cnf,创建文件路径，生成所需cakey.pem（CA的key文件）和cacert.pem（CA的crt文件）文件</p>
+
+<pre>openssl genrsa -out demoCA/private/cakey.pem 2048
+openssl req -out demoCA/cacert.pem   -x509 -new -key demoCA/private/cakey.pem</pre>
+
+<p>手动在当前目录下创建demoCA/newcerts/,demoCA/private/这两个文件。配置openssl.cnf下面几行内容
+openssl.cnf 内容(去除注释后)(只贴出有可能修改过的地方)</p>
+
+<pre>dir&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = ./demoCA # Where everything is kept
+certs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = $dir/certs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # Where the issued certs are kept
+crl_dir&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = $dir/crl&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # Where the issued crl are kept
+database&nbsp;&nbsp;&nbsp; = $dir/index.txt&nbsp;&nbsp;&nbsp; # database index file.
+# several ctificates with same subject.
+new_certs_dir&nbsp;&nbsp;&nbsp; = $dir/newcerts&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # default place for new certs.
+
+certificate&nbsp;&nbsp;&nbsp; = $dir/cacert.pem&nbsp;&nbsp;&nbsp;&nbsp; # The CA certificate
+serial&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = $dir/serial&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # The current serial number
+crlnumber&nbsp;&nbsp;&nbsp; = $dir/crlnumber&nbsp;&nbsp;&nbsp; # the current crl number
+# must be commented out to leave a V1 CRL
+crl&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; = $dir/crl.pem&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; # The current CRL
+private_key&nbsp;&nbsp;&nbsp; = $dir/private/cakey.pem# The private key
+RANDFILE&nbsp;&nbsp;&nbsp; = $dir/private/.rand&nbsp;&nbsp;&nbsp; # private random number file</pre>
+
+<p>7.再次执行步骤5的操作，这次执行通过。如需查看文件的信息，可以使用如下命令
+查看证书命令</p>
+
+<pre>openssl x509 -noout -text -in server.crt</pre>
+
+<p>8.将客户端证书转成pfx格式，浏览器安装
+<a href="{{ site:url }}/uploads/2012/10/changepkcs12.png"><img class="alignnone size-full wp-image-565" title="changepkcs12" src="{{ site:url }}/uploads/2012/10/changepkcs12.png" alt="生成pfx文件" width="641" height="86"></a></p>
+
+<pre>openssl pkcs12 -export -clcerts -in client.crt -inkey client.key -out client.pfx</pre>
+
+<p>到此openssl相关的证书文件就结束了。</p>
+
+<p><strong>下面接着配置apache相关的文件</strong></p>
+
+<p>1.打开apache配置文件httpd.conf，查找#LoadModule ssl<em>module modules/mod</em>ssl.so和#Include conf/extra/httpd-ssl.conf，去掉前面的#；</p>
+
+<p>2.打开httpd-ssl.conf配置一下信息</p>
+
+<pre>SSLSessionCache&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; "shmcb:c:/Apache2/logs/ssl_scache(512000)"
+SSLMutex default
+&lt;VirtualHost _default_:443&gt;
+DocumentRoot "D:/wamp5.3/www"
+ServerName www.laoniangke.com:443
+ServerAdmin php@admin.com
+ErrorLog "D:/wamp5.3/logs/error.log"
+TransferLog "D:/wamp5.3/logs/access.log"
+
+SSLEngine on
+SSLCipherSuite ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL
+SSLCertificateFile "D:/wamp5.3/bin/apache/Apache2.2.21/bin/server.crt"
+SSLCertificateKeyFile "D:/wamp5.3/bin/apache/Apache2.2.21/bin/server.key"
+
+#进行双向验证
+SSLCACertificateFile "D:/wamp5.3/bin/apache/Apache2.2.21/bin/root.crt"
+SSLVerifyClient require
+SSLVerifyDepth&nbsp; 10
+&lt;/VirtualHost&gt;</pre>
+
+<p>以及一些apache的CustomLog与cgi_bin文件路径。重启apache就可以了</p>
+
+<p>如果程序中需要获取客户端证书信息，需要配置SSLOptions。
+crm组所有项目都是通过获取客户端证书的公钥去除第一行（-----BEGIN CERTIFICATE-----）和最后一行（-----END CERTIFICATE-----）,并去除换行符"\n"。将最后的值进行MD5，再去数据库中查找证书信息是否存在，判断是否有权限进行登录。
+这里涉及到获取证书的公钥信息，而默认的配置不会返回$<em>SERVER['SSL</em>CLIENT_CERT']。查看httpd-ssl.conf中 SSLOptions 指令ExportCertData中的这句"These contain the PEM-encoded X.509 Certificates of server and client for the current HTTPS connection and can be used by CGI scripts for deeper Certificate checking"，大致意思是可以通过脚本获取证书的PEM-encoded X.509值
+需要在SSLOptions中加入一个ExportCertData,即
+SSLOptions +FakeBasicAuth -StrictRequire</p>
+
+<pre>&lt;FilesMatch ~ "\.(cgi|shtmlphtml|php)$"&gt;
+   SSLOptions +StdEnvVars +ExportCertData
+&lt;/FilesMatch&gt;</pre>
+
+<p>这样就可以在本地模拟apache+mysql+php+ssl进行开发，而无需每次都在本地开发之后必须提交到服务器进行测试（因为偶尔存在多人同时在修改同一文件发生覆盖的情况）。</p>

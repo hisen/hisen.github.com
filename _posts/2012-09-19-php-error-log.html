@@ -1,0 +1,53 @@
+---
+layout: post
+title: php程序报错查看日志，解决问题
+category: php
+keywords: phpErrorLog
+---
+
+<p>   在生产环境为了提高安全性，都是将php的报错信息给关闭了。如果遇到开发环境与生产环境不一致的情况，找不到问题所在，那么我们可以查看apache的错误日志进行问题的跟踪解决。但是一般的我等这样的屌丝是没有这个权限去查看生产环境的log日志的。所以如果有一套系统软件，可以方便的让项目成员了解自己开发维护的系统的运行日志是多么幸福的一件事。</p>
+<p>先来说说在开发环境中遇到的问题，以及如果通过apache日志进行问题查看分析的吧。</p>
+<p><strong>碰到的场景</strong>：</p>
+<p>   在crm系统中使用zendframework，由于使用到的表有上百张，以及历史的原因各功能的module非常乱，内聚性也低。所以对系统进行了重构，每张表设置了bean文件，进行一一对应，其中的一个bean文件里面的代码如果出现两个同名的函数，开发环境不报错，页面显示为空白。</p>
+<p>然后进入系统查看apache的log日志，由于两个小组开发的系统使用的都是同一个log日志。信息非常的大，查看显示为194777747，这么大的文件，使用cat命令查看的话直接是满屏的雪花。</p>
+<p>因为是最近生成的记录，所以只需要最后几行的信息就可以，这样的话可以使用tail命令进行查看</p>
+<pre>tail /usr/local/apache/error_log</pre>
+<p>这个命令默认显示为尾部的10条信息</p>
+<p>然后查看自己机子的ip找到最近的，<br />
+apache访问日志显示为：</p>
+<pre>[19/Sep/2012:17:26:26 +08000] 10.0.2.38 TLSv1 DHE-RSA-AES256-SHA "GET /web/xxx?date=xxx HTTP1.1" 205 </pre>
+<p>这条记录的具体意思为：‘[19/Sep/2012:17:26:26 +08000]’访问时间，其中+08000代表是东八区；&#8217;10.0.2.38&#8242;访问者ip；‘TLSv1 DHE-RSA-AES256-SHA’这两项即代表ssl证书访问；&#8221;GET /web/xxx?date=xxx HTTP1.1&#8243;访问的方式，url以及http协议的版本；205服务器放回的状态码‘服务器成功处理了请求，但未返回任何内容，此响应要求请求者重置文档视图’。</p>
+<p>apache错误日志显示为：</p>
+<pre>[wed Sep 19 17:26:26 2012] [error] [Client 10.0.2.38] PHP Fatal error: Call to undefined method .......</pre>
+<p>到此我们就可以知道php程序的问题所在了是没有找到函数名。然后去文件里面找这个函数，存在，但是有两个同名的。重命名自己写的这个，刷新页面显示正常，搞定over</p>
+<p><span id="more-516"></span></p>
+<p>通过查看日志文件我们还可以了解同事今天是不是在打酱油。哈哈&#8230;&#8230;.<br />
+具体实现就是查看apache的今天的访问日志，当然也得看当前人具体在开发维护什么。像整个新功能开发，一般是代码全部写完再提交测试，这样的访问数据相对单点样式调整会少很多；以及一些新手可能是提交一点测试查看一点，这样也会相对比较多的数据量。</p>
+<p>就查看最近的100条记录吧：</p>
+<pre>tail -n6 /usr/local/apache/request_log</pre>
+<p>tail -n数字 即为显示最近的6条信息</p>
+<pre>[18/Sep/2012:16:33:00 +0800] 10.0.2.38 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/login.php HTTP/1.1" 258
+[18/Sep/2012:17:33:00 +0800] 10.0.2.38 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/a.php HTTP/1.1" 250
+[18/Sep/2012:22:33:00 +0800] 10.0.2.10 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/b.php HTTP/1.1" 111
+[18/Sep/2012:40:33:00 +0800] 10.0.2.100 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/a.php HTTP/1.1" 262
+[18/Sep/2012:41:33:00 +0800] 10.0.2.108 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/c.php HTTP/1.1" 250
+[18/Sep/2012:44:33:00 +0800] 10.0.2.61 TLSv1 DHE-RSA-AES256-SHA "GET /jgbcm/a.php HTTP/1.1" 250</pre>
+<p>如果需要对返回的日志进行过滤，则使用gerp</p>
+<pre>cat /usr/local/apache/request_log | grep 10.0.2.38</pre>
+<p>即查看ip为10.0.2.38的访问日志。<br />
+但是如果需要查看10.0.2.10的日志的话，使用上面的方式，如果存在10.0.2.10X，也会被匹配到，那就得使用</p>
+<pre>cat /usr/local/apache/request_log | grep '10.0.2.10\&gt;'</pre>
+<p>上面返回的信息是用户的全部访问记录，需求制定日期的或可以再grep，如：</p>
+<pre>cat /usr/local/apache/request_log | grep 10.0.2.38 |grep 18/Sep/2012</pre>
+<p>，即为ip为10.0.2.38在9月18号的访问的信息</p>
+<p>批量10.0.2.38和10.0.2.61的信息方式为：</p>
+<pre>cat /usr/local/apache/request_log | grep ‘10.0.2.38\|10.0.2.61'</pre>
+<p>知道如何使用grep之后，就可以进行下班的统计了。计数使用wc</p>
+<pre>cat /usr/local/apache/request_log | grep 10.0.2.38 |grep 18/Sep/2012 |wc -l</pre>
+<p>wc如果不加-l的话，返回的为三个数值，分别代表行数，单词数，字数。<br />
+这里使用-l是统计换行符数，即可以统计多少条记录。到此我们就可以知道某位同学在9月18日这天调试开发时的pv了，呵呵</p>
+<p>如果我们需要对返回的结果进行按照ip进行排序的话，可以使用sort</p>
+<pre>cat /usr/local/apache/request_log | grep /jgbcrm/ | sort -t " " -k2</pre>
+<p>-t &#8221; &#8220;表示按空格符号分割 -k2 表示按第2列进行排序 ，后面如果加-r，则表示倒序</p>
+<p>如果需要动态的显示最近一条记录的话，可以使用</p>
+<pre>tail -f /usr/local/apache/request_log</pre>

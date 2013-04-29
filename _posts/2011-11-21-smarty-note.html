@@ -1,0 +1,48 @@
+---
+layout: post
+title: smarty小记
+category: php
+keywords: php,smarty
+---
+
+<p>smarty的配置文件</p>
+
+<pre>&lt;?php
+/**
+ * 文件名：smarty_inc.php
+ * 描述：这是smarty的配置文件。其他文件再次使用smarty引擎，就可以，直接引用该文件
+ */
+require_once("smarty/Smarty.class.php");      // 指名smarty主文件的路径
+$tpl = new Smarty();                    // 创建smarty对象
+$template_dir = dirname(__FILE__).'/template';      // 模板存放目录
+$tpl-&gt;compile_dir = dirname(__FILE__).'/template_c'; // 编译后文件存放目录
+$tpl-&gt;config_dir = dirname(__FILE__).'/config';      // 管理员配置的全部变量目录
+$tpl-&gt;cache_dir = dirname(__FILE__).'/cache';        // 缓存目录
+$tpl-&gt;caching       = false;             // 是否开启缓存
+$tpl-&gt;left_delimiter = '{/';             // 右边界符
+$tpl-&gt;right_delimiter = '/}';                // 左边界符
+</pre>
+
+<p>smarty中使用php函数的语法</p>
+
+<pre>{/$var|function:'param'/}</pre>
+
+如实现php的implode功能，则是
+<pre>{/$arr|implode:','/}</pre>
+
+在模板中设置变量
+<pre>{assign var="number" value="$array|count"}</pre>
+
+循环次数index与iteration的区别
+iteration不像index属性受start与step和max的属性影响，其值总是从1开始（index是从0开始）。rownum是iteration的别名
+
+<pre>{section name=customer loop=$custid start=5 step=2}
+{$smarty.section.customer.index}:{$smarty.section.customer.iteration}
+{/section}
+
+输出:
+5:1
+7:2
+9:3
+</pre>
+</body></html>

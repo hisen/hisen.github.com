@@ -1,0 +1,33 @@
+---
+layout: post
+title: apache开启gzip压缩与expires
+category: apache
+keywords: apache gzip,apache缓存配置
+---
+
+<p>打开httpd.conf查找下面两行，去掉前面的#<br />
+<code>#LoadModule deflate_module modules/mod_deflate.so<br />
+#LoadModule expires_module modules/mod_expires.so</code></p>
+<p>打开网站的 .htaccess 文件,将下面代码拷贝进去:</p>
+<p><code><br />
+ExpiresActive On<br />
+ExpiresDefault "access plus 12 month"<br />
+ExpiresByType text/html "access plus 12 months"<br />
+ExpiresByType text/css "access plus 12 months"<br />
+ExpiresByType image/gif "access plus 12 months"<br />
+ExpiresByType image/jpeg "access plus 12 months"<br />
+ExpiresByType image/jpg "access plus 12 months"<br />
+ExpiresByType image/png "access plus 12 months"<br />
+EXpiresByType application/x-shockwave-flash "access plus 12 months"<br />
+EXpiresByType application/x-javascript "access plus 12 months"<br />
+ExpiresByType video/x-flv "access plus 12 months"<br />
+</code><br />
+SetOutputFilter DEFLATE<br />
+AddOutputFilterByType DEFLATE text/html text/css image/gif image/jpeg image/png application/x-javascript</p>
+<p>开启前响应头与开启后响应头得区别<br />
+<a href="{{ site:url }}/uploads/2011/11/gzip.jpg"><img class="alignnone size-medium wp-image-131" title="gzip" src="{{ site:url }}/uploads/2011/11/gzip.jpg" alt="" width="300" height="149" /><img class="alignnone size-medium wp-image-132" title="gzip2" src="{{ site:url }}/uploads/2011/11/gzip2.jpg" alt="" width="300" height="193" /></a></p>
+<p>ysolow开启前与开启后的区别<br />
+<a href="{{ site:url }}/uploads/2011/11/yslow.jpg"><img class="alignnone size-full wp-image-133" title="yslow" src="{{ site:url }}/uploads/2011/11/yslow.jpg" alt="" width="284" height="47" /></a><a href="{{ site:url }}/uploads/2011/11/yslow2.jpg"><img class="alignnone size-full wp-image-134" title="yslow2" src="{{ site:url }}/uploads/2011/11/yslow2.jpg" alt="" width="271" height="36" /></a></p>
+<p>&nbsp;</p>
+<p>其中ubuntu下apache默认是没有开启expires的；</p>
+<p>#a2enmod expires   开启expires模块，并重启apache即可</p>

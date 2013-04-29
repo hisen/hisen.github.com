@@ -1,0 +1,86 @@
+---
+layout: post
+title: windows7下树莓派虚拟机和主机相互访问
+category: Raspberry Pi
+keywords: 树莓派,树莓派虚拟机
+---
+
+<p>微薄上关注了一段树莓派的相关介绍。信用卡大小的一块板子真是太袖珍了，最重要的是可以拿来当学习机。淘宝下的订单未送到之前也在windows7上安装了虚拟机进行尝试使用，因为raspberry pi只支持Qemu。
+网上下的集成包http://sourceforge.net/projects/rpiqemuwindows/，默认减压直接运行目录下的run.dat即可启动。
+首次启动需要进行系统的设置。这个可以自行百度谷歌，网上有很多教程，主要的注意点就是键盘的选择，和到手后的raspberry pi真机上设置的话，需要扩展系统容量，
+还有就是中文的安装，这个我SD卡下载的是最新的wheezy-raspbian.zip，在中文并未需要安装字体。原先老的版本是需要另行安装中文字体的。</p>
+
+<p>安装上虚拟机之后默认是可以进行上网的。但是主机无法访问虚拟机。参看ip地址不在同一个网段,以下是如何设置主机访问草莓派的方式</p>
+
+<p>1.下载openvpn安装程序给Windows7装一个虚拟网卡
+安装之后会在网络里面多出一个TAP-Win32 Adapter V9网卡，如下图
+<a href="{{ site:url }}/uploads/2013/01/TAP-Win32.png"><img src="{{ site:url }}/uploads/2013/01/TAP-Win32.png" alt="虚拟网卡" title="TAP-Win32" width="217" height="66" class="alignnone size-full wp-image-672"></a></p>
+
+<p>2.修改网卡的ip地址：
+因为是公司的网络所以参考了本机的ip进行了设置
+<a href="{{ site:url }}/uploads/2013/01/IP.png"><img src="{{ site:url }}/uploads/2013/01/IP.png" alt="设置ip" title="IP" width="775" height="417" class="alignnone size-full wp-image-673"></a></p>
+
+<p>3.设置本地连接为共享连接
+这步之前已经网卡的名称修改成了hisen
+<a href="{{ site:url }}/uploads/2013/01/open.png"><img src="{{ site:url }}/uploads/2013/01/open.png" alt="设置共享连接" title="open" width="468" height="304" class="alignnone size-full wp-image-674"></a></p>
+
+<p>系统会自动修改虚拟网卡的ip
+<a href="{{ site:url }}/uploads/2013/01/IPv4.png"><img src="{{ site:url }}/uploads/2013/01/IPv4.png" alt="ip变更" title="IPv4" width="767" height="435" class="alignnone size-full wp-image-675"></a></p>
+
+<p>4.找到qemu目录下的run.dat文件修改启动
+后面添加 -localtime -net nic -net tap,ifname=hisen</p>
+
+<pre>
+qemu-system-arm.exe -M versatilepb -cpu arm1176 -hda 2012-07-15-wheezy-raspbian.img -kernel 
+kernel-qemu -m 192 -append "root=/dev/sda2" -localtime -net nic -net tap,ifname=hisen
+</pre>
+
+<p>5.运行run.dat，进入系统，打开chrom的Secure Shell插件，设置连接登陆
+<a href="{{ site:url }}/uploads/2013/01/chrome-Secure-Shell.png"><img src="{{ site:url }}/uploads/2013/01/chrome-Secure-Shell.png" alt="登陆虚拟机" title="chrome-Secure Shell" width="632" height="457" class="alignnone size-full wp-image-678"></a></p>
+
+<pre>Welcome to Secure Shell version 0.8.8.
+Answers to Frequently Asked Questions: http://goo.gl/m6Nj8
+正在连接 pi@192.168.137.94，端口为 22...
+Loading NaCl plugin... done.
+The authenticity of host '192.168.137.94 (192.168.137.94)' can't be established.
+ECDSA key fingerprint is d3:38:d5:4d:b0:60:88:58:db:b9:70:e5:08:c7:80:e0.
+Are you sure you want to continue connecting (yes/no)? y
+Please type 'yes' or 'no': yes
+Warning: Permanently added '192.168.137.94' (ECDSA) to the list of known hosts.
+pi@192.168.137.94's password: 
+Linux raspberrypi 3.1.9+ #2 Mon Apr 16 04:53:15 EST 2012 armv6l
+
+The programs included with the Debian GNU/Linux system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Debian GNU/Linux comes with ABSOLUTELY NO WARRANTY, to the extent
+permitted by applicable law.
+
+Type 'startx' to launch a graphical session
+
+Last login: Sat Jan 19 15:39:53 2013 from win-8vug01l49lm.mshome.net
+</pre>
+
+<p>查看虚拟机ip信息</p>
+
+<pre>pi@raspberrypi /var/www $ ifconfig
+eth0      Link encap:Ethernet  HWaddr 52:54:00:12:34:56  
+          inet addr:192.168.137.94  Bcast:192.168.137.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:964 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:761 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:109467 (106.9 KiB)  TX bytes:84631 (82.6 KiB)
+          Interrupt:25 Base address:0xa000 DMA chan:ff 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:0 (0.0 B)  TX bytes:0 (0.0 B)
+</pre>
+
+<p>到此配置就结束了，首次接触qemu与草莓派还有很多东西都不清楚，好得加紧学习。同时也推荐爱折腾的也去买块玩玩，一些东西都是自己动手去试验了才能记得更加深刻</p>

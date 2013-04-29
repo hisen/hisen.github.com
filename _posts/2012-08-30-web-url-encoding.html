@@ -1,0 +1,71 @@
+---
+layout: post
+title: web开发中遇到的URL编码问题整理
+category: web
+keywords: URL编码
+---
+
+<p>有一个账号在之前开发的系统中进行解锁，返回无权限。而记录中的这个账号是有相应的权限的。然后我自己上系统给这个账号进行解锁操作，返回结果是“解锁成功”。怪哉，于是截图问这边操作可以的，反馈说“谷歌浏览器可以，但是ie下不行”。于是乎自己用ie在操作一遍。靠真的返回为无权限。</p>
+
+<p>猜想后端php接收到的账号参数肯定在ie下出现了编码问题。
+打开html页面，里面的传值方式是用的jquery的ajax操作，代码类型如下</p>
+
+<pre>var url = 'url?account=杭州';
+$.ajax({
+           url:url,
+           type:"GET",
+           dataType:"json",
+           success:function(result)
+           {
+
+           }
+        })
+</pre>
+
+<p>系统中代码统一使用的是utf-8，判断为ie浏览器下ajax对url中包含中文参数默认是试用GBK的,后端php接收到的账号编码出错导致记录中查不到此账号信息。</p>
+
+<p>在后端的php进行验证判断</p>
+
+<pre>&lt;?php
+   if('杭州'==$name)
+   {
+       echo 'UTF-8';
+   }
+   else
+   {
+      echo 'GBK';
+   }
+</pre>
+
+<p>果然在火狐与谷歌下输出为UTF-8，然ie下为gb2312。
+用php的if('杭州'==$name)不够直观。那我们用抓包工具进行抓包进行查看
+ie下的抓包结果为
+<a href="{{ site:url }}/uploads/2012/08/gb2312.png"><img class="alignnone size-full wp-image-478" title="gb2312" src="{{ site:url }}/uploads/2012/08/gb2312.png" alt="抓包编码" width="459" height="45"></a></p>
+
+<p>火狐下的抓包结果为：
+<a href="{{ site:url }}/uploads/2012/08/utf-8.png"><img class="alignnone size-full wp-image-479" title="utf-8" src="{{ site:url }}/uploads/2012/08/utf-8.png" alt="火狐下抓包" width="515" height="62"></a></p>
+
+<p>unicode编码转换具体分析参考<a title="unicode与utf-8相互转换，gb2312编码转换" href="http://www.laoniangke.com/?p=481" target="_blank">这篇文章</a></p>
+
+<p>解决办法改成POST，参数作为ajax的json方式提交，代码如下：</p>
+
+<pre> $.ajax({
+           url:url,
+           type:"POST",
+           dataType:"json",
+           data{"account":"杭州"},
+           success:function(result)
+           {
+
+           }
+        })
+</pre>
+
+<p>很早以前负责的CRM给别的部分提供接口的时候也遇到过直接在浏览器地址栏中输入账号参数的编码问题，url格式如：http://laoniangke.com/account=XXX。</p>
+
+<p>因为之前以为对方是在web页面中进行查询提交的，中间也就没有对编码进行过多的考虑。系统使用的是UTF-8，这种在浏览器地址栏中直接输入</p>
+
+<p>http://laoniangke.com/account=XXX，无论在ie还是火狐下全是用的gb2312编码</p>
+
+<p>有人可能会问如果要使用中文值进行，测试的时候不是很不方便。这里可以使用js的encodeURI函数就中文进行编码下，编码之后的值都是utf8的。如图：直接使用firebug进行转换，得到“%E6%9D%AD%E5%B7%9E”组装url：http://laoniangke.com/account=%E6%9D%AD%E5%B7%9E
+<a href="{{ site:url }}/uploads/2012/08/encodeURI.png"><img class="alignnone size-full wp-image-560" title="encodeURI" src="{{ site:url }}/uploads/2012/08/encodeURI.png" alt="编码encodeURI" width="178" height="185"></a></p>

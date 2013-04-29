@@ -1,0 +1,112 @@
+---
+layout: post
+title: php实现word文档在线浏览功能，配置安装手记
+category: php
+keywords: doc文档在线预览
+---
+
+<p>一般类似oa或者crm等管理系统可能都会遇到需要再线查看word文档的功能，类似百度文库。</p>
+<p>记得去年小组中的一个成员负责的项目就需要这个的功能，后面说是实现比较困难，就将就着用chm格式替代了。今天看到网上一遍文章《LINUX下面PHP文件转换》，介绍怎么样在linux下使用Openoffice 3 , Pdf2Swf tool , Jodconverter , FlexPaper，实现文档在线查看。</p>
+<p>自己再ubuntu下进行的尝试安装，步骤如下：</p>
+<p>因为ubuntu版本为10.0.4，openoffice已经默认安装。如果没有安装openoffice的话自行谷歌安装。<br />
+第一步：安装jodconverter，安装之后可以实现doc文档转成pdf。</p>
+<p>文件下载地址为http://www.artofsolving.com/opensource/jodconverter<br />
+下载了之后直接解压，解压到/opt目录下/opt/jodconverter-2.2.2/，使用到的文件是安装包内的lib/jodconverter-cli-2.2.2.jar。<br />
+测试是否可以使用</p>
+<pre class="brush: php; title: ; notranslate" title="">java -jar /opt/jodconverter-2.2.2/lib/jodconverter-cli-2.2.2.jar /home/php/1.doc /home/php/1.pdf</pre>
+<p>这里提示缺少java软件包，并会提示几个安装包供。选择我安装openjdk-6-jre-headless，命令如下：</p>
+<pre class="brush: php; title: ; notranslate" title="">sudo apt_get openjdk-6-jre-headless</pre>
+<p>安装之后再运行上面doc转pdf的命名，会提示openoffice进程未启动，<br />
+<a href="{{ site:url }}/uploads/2012/10/openoffice1.png"><img class="alignnone size-large wp-image-547" title="openoffice" src="{{ site:url }}/uploads/2012/10/openoffice1-1024x144.png" alt="" width="1024" height="144" /></a><br />
+因为JODConverter是通过OpenOffice來做转换的 ，所以使用前需要先安裝OpenOffice, 並且將OpenOffice的Service启动, 才可以使用. 启动命令</p>
+<pre class="brush: php; title: ; notranslate" title="">/usr/lib/soffice -headless -accept=&amp;quot;socket,host=127.0.0.1,port=8100;urp;&amp;quot; -nofirststartwizard &amp;amp;</pre>
+<p>到此运行上面的doc转pdf的命令已经可以成功。<br />
+<span id="more-528"></span></p>
+<p>第二步：安装swftools，安装之后可以实现pdf文件转成swf</p>
+<pre class="brush: php; title: ; notranslate" title="">
+wget http://www.swftools.org/swftools-0.9.1.tar.gz
+tar xzf swftools-0.9.1.tar.gz
+cd swftools-0.9.1
+./configure
+make
+make install
+</pre>
+<p>测试是否可以使用</p>
+<pre class="brush: php; title: ; notranslate" title="">pdf2swf -o /home/php/1.swf -T -z -t -f /home/php/1.pdf -s flashversion=9</pre>
+<p>第三步：用FlexPaper实现在线预览，里面有详细的demo。</p>
+<p>第四步：使用php测试文档转换命令：<br />
+文档转pdf</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+$doc = './docs/test.txt';
+$formatName = './pdf/test.pdf';
+$command = 'java -jar /opt/jodconverter-2.2.2/lib/jodconverter-cli-2.2.2.jar '.$doc.' '.$formatName;
+
+exec($command);
+echo 'ok';
+</pre>
+<p>pdf转swf</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+$pdf = './pdf/test.pdf';
+$swf = './swf/test.swf';
+
+$command = '/usr/local/wenku/swftools-0.9.1/src/pdf2swf -o '.$swf.' -T -z -t -f '.$pdf.' -s flashversion=9';
+
+exec($command);
+echo 'ok';
+</pre>
+<p><span style="color: #ff0000;">php脚本去运行上面的命令可能存在权限的问题无法执行</span><br />
+其中我测试使用的php脚本调用pdf2swf进行转换文件，生成不了。这样只需配置apache的用户权限即可，确保配置的用户有权限运行pdf2swf命令<br />
+默认安装的php环境ubuntu下配置文件是/etc/apache2/apache2.conf修改这两行，<br />
+User ${APACHE_RUN_USER}<br />
+Group ${APACHE_RUN_USER}</p>
+<p>配置完之后，重启apache。<br />
+/etc/init.d/apache2 restart</p>
+<p>到此linux下的安装配置就结束了。</p>
+<p><strong>window下测试</strong></p>
+<p>下载window下使用的Pdf2Swf tool和FlexPaper，手动的将pdf文件转swf后进行在线查看的功能。</p>
+<p>步骤整理如下：</p>
+<p>1.安装Pdf2Swf tool之后，进行将pdf转swf。cmd命令行：<br />
+pdf2swf.exe -t D:\wamp5.3\www\test\pdf\c.pdf -s flashversion=9 -o D:\wamp5.3\www\test\swf\c.swf<br />
+-t: 源文件路径，即待转换的pdf文件路径。<br />
+-s: 设置参数,这里我们设置为 flashversion=9 ，即可以转换为9 的版本啦。<br />
+-o: 输出文件的路径,这里我输出到D:盘下</p>
+<p>运行的结果如图所示：</p>
+<p><a href="{{ site:url }}/uploads/2012/10/pdf2swf.png"><img class="alignnone size-full wp-image-531" title="pdf2swf" src="{{ site:url }}/uploads/2012/10/pdf2swf.png" alt="" width="644" height="92" /></a></p>
+<p>2.使用FlexPaper插件显示浏览swf文件。这里下载使用的版本是1.5.8 Flash Version (release notes)。软件包内就已经有html版本的demo，稍微改动下句可以实现了。</p>
+<p>代码如下：</p>
+<pre class="brush: xml; title: ; notranslate" title="">
+&lt;script src=&quot;js/flexpaper_flash.js&quot; type=&quot;text/javascript&quot;&gt;&lt;/script&gt;
+&lt;a id=&quot;viewerPlaceHolder&quot; style=&quot;width:680px;height:480px;display:block;&quot;/&gt;&lt;/a&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+                 var fp = new FlexPaperViewer(
+             'FlexPaperViewer',
+             'viewerPlaceHolder', { config : {
+             SwfFile : escape('c.swf'),
+             Scale : 0.1,
+             ZoomTransition : 'easeOut',
+             ZoomTime : 0.5,
+             ZoomInterval : 0.2,
+             FitPageOnLoad : true,
+             FitWidthOnLoad : false,
+             FullScreenAsMaxWindow : false,
+             ProgressiveLoading : false,
+             MinZoomSize : 0.2,
+             MaxZoomSize : 5,
+             SearchMatchAll : false,
+             InitViewMode : 'Portrait',
+             PrintPaperAsBitmap : false,
+
+             ViewModeToolsVisible : true,
+             ZoomToolsVisible : true,
+             NavToolsVisible : true,
+             CursorToolsVisible : true,
+             SearchToolsVisible : true,
+
+               localeChain: 'en_US'
+             }})
+&lt;/script&gt;
+</pre>
+<p>到此就结束了，查看效果如图实现：<br />
+<a href="{{ site:url }}/uploads/2012/10/flexpaper.png"><img class="alignnone size-full wp-image-553" title="flexpaper" src="{{ site:url }}/uploads/2012/10/flexpaper.png" alt="" width="400" height="283" /></a></p>

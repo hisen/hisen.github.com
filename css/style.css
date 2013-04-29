@@ -1,6 +1,6 @@
 @charset "utf-8";
 /* CSS Document */
-html,body,ol,ul,li,img,p,span,div,h1,h2,a,dl,dt,dd,h3{margin:0; padding:0; border:0;  font-family:"宋体"; list-style:none;}
+html,body,ol,ul,li,img,p,span,div,h1,h2,a,dl,dt,dd,h3,pre{margin:0; padding:0; border:0;  font-family:"宋体"; list-style:none;}
 body{font-family:"宋体"; font-size:12px; color:#333333; text-decoration:none; margin:0; padding:0; background:#f9f9f9;}
 a{ color:#333333; text-decoration:none;}
 a:hover{color:#2c63bd; text-decoration:underline;}
@@ -83,3 +83,4 @@ a.gray:hover{
 .content dt{ border-bottom:dashed 1px #d1d1d1;  padding-bottom:10px;}
 .content dd{ padding:20px 0; line-height:30px; font-size:14px;}
 .content dd h4{ background:url(../images/line.gif) repeat-x bottom;}
+.content pre{ border:1px dashed #dedede; padding:10px; width:740px; line-height:20px; background:#f0f0f0;}

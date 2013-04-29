@@ -1,0 +1,128 @@
+---
+layout: post
+title: 前端优化之部门CRM总结
+category: web
+keywords: web前端优化
+---
+
+<p>前端优化可以改善站点的用户体验，并且能够节省相当的资源利用。</p>
+
+<p>一个完整的请求需要经过DNS寻址，与服务器建立连接，发送数据，等待服务器响应，接受数据。</p>
+
+<p>web的常见状态码
+<a href="{{ site:url }}/uploads/2012/07/httpCode.jpg"><img class="size-full wp-image-399" title="状态码" src="{{ site:url }}/uploads/2012/07/httpCode.jpg" alt="http" width="288" height="40"></a></p>
+
+<p>这里的304 Not Modifie 用来响应条件GET求情，避免下载已经存在与浏览器缓存中的数据</p>
+
+<p>按照对我们CRM帮助的大到小排序</p>
+
+<p>善用ajax，进行局部刷新，降低数据库服务器的负担；在一些查询响应过慢的地方运用ajax异步调用程序，达到用户最佳体验。</p>
+
+<p>将样式放在head中，最好是用link标签进行外链。</p>
+
+<p>可以加快页面的渲染，提高用户体验。假如css放在底部，可能会出现闪烁的可能，自己以前犯过这种错误，页面中的元素会闪烁位移的现象。精简css样式，如</p>
+
+<pre>#container li{ font-family:Georgia, serif; }
+#container p{ font-family:Georgia, serif; }
+#container h1{font-family:Georgia, serif; }
+利用CSS继承写成
+#container{ font-family:Georgia, serif; }
+</pre>
+
+<p>再如</p>
+
+<pre>h1{ font-family:Georgia, serif; font-weight:normal; }
+h2{ font-family:Georgia, serif; font-weight:normal; }
+h3{ font-family:Georgia, serif; font-weight:normal; }
+使用多重选择器合并为
+h1, h2, h3{ font-family:Georgia, serif; font-weight:normal; }
+</pre>
+
+<p>Css优化技巧还有很多。</p>
+
+<p><strong>将脚本放在底部，最好使用外链方式(错误的做法是将脚本放在顶部，这个问题在我们系统中普遍存在)</strong></p>
+
+<p>因为浏览器在加载js的时候，会考虑代码（如document.wriete）对页面DOM的修改，会阻塞其他资源的下载以确保页面适当的布局。如果放在顶部的js文件过大可以明显发现会出现白屏现象，大家可以自行测试。再个就是精简js代码，去除无用代码，如jquery的min版本就是一个例子</p>
+
+<p><a href="{{ site:url }}/uploads/2012/07/url.jpg"><img class="alignnone size-full wp-image-403" title="url" src="{{ site:url }}/uploads/2012/07/url.jpg" alt="" width="414" height="168"></a></p>
+
+<p><strong>CSS&amp;Javascript尽量外链</strong></p>
+
+<p>外链CSS和Javascript，不仅仅是减小HTML本身的体积，而且还可以充分利用浏览器的缓存机制和运用工具进行压缩，所以当CSS、Javascript的代码量超过一定体积时，尽量外链。程序如果已发布，还可以运用类型fiddle之类的工具进行线上调整样式，在与前端协作上可以充分体现。除此之外，尽量避免在页面中body的html代码中注册事件，既不利于维护也容易产生不必要的冗余代码，应该通过jquery的$(“#id”)方式，可以保持代码的整洁</p>
+
+<p><strong>压缩组件</strong>:通过减小HTTP响应的大小来减少响应时间，如果响应的包很小，从服务器传递到客户端，传输时间就会减少。</p>
+
+<p>请求头中Accept-Encoding gzip,deflate表示对压缩的支持(HTTP1.1开始)
+响应头中Content-Encoding: gzip来压缩响应。这个需要在apache服务器配置</p>
+
+<p><strong>减少请求次数</strong></p>
+
+<p>运用css sprites将多个图片合并到一个单独的图片中，然后通过css的background-position属性去控制显示期望的位置上。这个一般在页面有大量图片的网站运用的较多。我们CRM平台的一些小图片也可以运用这个方法。这样可达到减少http请求数的目的。避免在css中使用表达式。</p>
+
+<p>将多个脚本合并到一个脚本中，也可以达到上面类型的效果</p>
+
+<p>还有一些极端的地方：避免重复的资源请求，文件的404不存在情况（目前工程部的调用编辑器页面的content.css为404），以及301和302重定向（会增加多余请求，如外网访问https://192.168.2.192/laoniangke。应该在后面加上“/”。https://192.168.2.192/laoniangke/避免不必要的重定向，这里只是举个例子）</p>
+
+<p><strong>使用CDN</strong>，以达到用户请求选择最近响应时间最短的服务器，但也有缺点是修改了文件，需要在CDN上进行更新</p>
+
+<p><strong>减少DNS查找</strong></p>
+
+<p>请求头</p>
+
+<p>Connection Keep-Alive</p>
+
+<p>Keep-Alive 115</p>
+
+<p>响应头</p>
+
+<p>Connection keep-alive</p>
+
+<p>可在apache中配置</p>
+
+<p>在理想的环境中，如果打开长连接，可以处理6k/s 的响应，如果关掉长连接，只能处理4.2k/s 的响应</p>
+
+<p>KeepAlive On 默认是On的</p>
+
+<p>MaxKeepAliveRequests 0 指在单一连接时间可以允许多少个保持连接的请求 默认100。0为不限制</p>
+
+<p>KeepAliveTimeout 15 在没有接受其他请求时，会持续开启特定连接的时间。</p>
+
+<p>不是越大越好，需选择最优方案</p>
+
+<p>添加Expires头<a href="{{ site:url }}/uploads/2012/07/expires.jpg"><img class="alignnone size-full wp-image-404" title="expires" src="{{ site:url }}/uploads/2012/07/expires.jpg" alt="" width="234" height="15"></a></p>
+
+<p>代表可以使用这个组件直到这个指定的时间为止。</p>
+
+<p>HTTP1.1引入cache-control消除Expires的限制。但对于不支持HTTP1.1的浏览器，还是得提供Expires头。可以同时指定两个相应头。</p>
+
+<p>Php的header函数可以指定</p>
+
+<pre>
+&lt;?php
+
+header("Cache-Control: no-cache, must-revalidate");
+
+header("Expires: Mon, 26 Jul 1997 05:00:00 GMT");
+
+?&gt;
+
+</pre>
+
+<p>apache的配置</p>
+
+<pre>
+&lt;FileMatch "\.(gif|jpg|js|css)"&gt;
+
+ExpiresDefault "accsee plus 10 years"
+
+&lt;/FilesMatch&gt;
+
+</pre>
+
+<p>浏览器在同一时刻可以从同一域名下载多个文件，可以增加主机来增加并行下载数量，来降低最总的用户响应时间。详细分析地址<a title="并发下载" href="http://blog.s135.com/post/332/">http://blog.s135.com/post/332/</a></p>
+
+<p>各种浏览器并行下载的说明</p>
+
+<p><a href="{{ site:url }}/uploads/2012/07/browser.jpg"><img class="alignnone size-full wp-image-405" title="browser" src="{{ site:url }}/uploads/2012/07/browser.jpg" alt="" width="267" height="161"></a></p>
+
+<p>最后推荐一个页面分析的工具YSlow，是集成在firebug中的。这个工具可以帮助分析页面的，进行如何优化</p>

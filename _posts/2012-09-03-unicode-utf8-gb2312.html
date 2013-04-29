@@ -1,0 +1,123 @@
+---
+layout: post
+title: unicode与utf-8相互转换，gb2312编码转换
+category: web
+keywords: unicode,utf-8,gb2312编码转换
+---
+
+UTF-8（8-bit Unicode Transformation Format）是一种针对Unicode的可变长度字符编码（定长码），也是一种前缀码。具体查看wiki中的<a title="UTF-8" href="http://zh.wikipedia.org/wiki/UTF-8" target="_blank">utf-8</a>的描述。
+
+这里需要了解的是“Unicode和UTF-8之间的转换关系表”
+<table class="wikitable" style="float: center; margin: 0 0 1em 1em;"><caption><strong>Unicode和UTF-8之间的转换关系表</strong></caption>
+<tbody>
+<tr>
+<th style="background: #efefef;">UCS-4编码</th>
+<th style="background: #efefef;">UTF-8字节流</th>
+</tr>
+<tr>
+<td>U+00000000 – U+0000007F</td>
+<td>0xxxxxxx</td>
+</tr>
+<tr>
+<td>U+00000080 – U+000007FF</td>
+<td>110xxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td>U+00000800 – U+0000FFFF</td>
+<td>1110xxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td>U+00010000 – U+001FFFFF</td>
+<td>11110xxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td>U+00200000 – U+03FFFFFF</td>
+<td>111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+<tr>
+<td>U+04000000 – U+7FFFFFFF</td>
+<td>1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx</td>
+</tr>
+</tbody>
+</table>
+还需要知道具体符号对应表，可以查询<a title="unicode符号对照" href="http://www.unicode.org/" target="_blank">unicode.org</a>
+查找“杭州”分表对应’杭‘=&gt;'676D','州'=&gt;'5DDE'
+
+如<a title="web开发中遇到的URL编码问题整理" href="http://www.laoniangke.com/?p=465">上一遍文章</a>讲的“杭州”在url传递中为'杭'=&gt;'e69dad'。'州'=&gt;'e5b79e'。
+
+具体转换方式如下
+
+<pre>
+&lt;?php echo base_convert('e69dad',16,2);
+/* 得到：111001101001110110101101，对照“Unicode和UTF-8之间的转换关系表”，
+  utf-8中文是占三个字节的，那么分组为“11100110 10011101 10101101”，
+  按照’1110xxxx 10xxxxxx 10xxxxxx‘进行从低位向高位（从右向左）依次获得“X”,
+  值为“110 011101 101101” 最后再对获取的值转为16进制
+  抽象为加法算式类似为
+  1110xxxx  10xxxxxx  10xxxxxx
+   +  0110    011101    101101
+   ---------------------------
+   11100110 10011101 10101101
+ */
+  echo base_convert('110 011101 101101',2,16); //得到的就是676D
+?&gt;
+</pre>
+
+按照上面的方式得到'州'=&gt;'5DDE'
+
+最后浏览器中则是根据具体符号对应表将具体的"'杭'-&gt;'676D'-&gt;根据编码方式（这里是utf-8），补全二进制值-&gt;转成16进制-&gt;即得到'e69dad'"
+
+下面这张图是树莓派系统未安装中文字符集时，百度首先的截图。乱码的中文是“百度一下，你就知道”
+<a href="{{ site:url }}/uploads/2012/09/baidu.png"><img src="{{ site:url }}/uploads/2012/09/baidu.png" alt="中文字符集" title="baidu" width="316" height="112" class="alignnone size-full wp-image-689" /></a>
+其中不难发现第一个字“百”的unicode正是767E
+
+
+再来看下gb2312的babc,d6dd为什么分别是‘杭’，‘州’
+首先需要了解gb2312的由来：
+ASCII这种字符编码规则显然用来处理英文没有什么问题，它的出现极大的促进了信息在西方尤其是美国的传播和交流。但是对于中文，常用汉字就有6000以上，ASCII 单字节编码显然是不够用。为了粉碎美帝国主义通过编码限制中国人民使用电脑的无耻阴谋，中国国家标准总局发布了GB2312码即中华人民共和国国家汉字信息交换用编码，全称《信息交换用汉字编码字符集——基本集》，1981年5月1日实施，通行于大陆。GB2312字符集中除常用简体汉字字符外还包括希腊字母、日文平假名及片假名字母、俄语西里尔字母等字符，未收录繁体中文汉字和一些生僻字。 EUC-CN可以理解为GB2312的别名，和GB2312完全相同。
+
+GB2312是基于区位码设计的，在区位码的区号和位号上分别加上A0H就得到了GB2312编码
+
+这里我们可以网上搜索“区位码查询系统”，查询到的‘杭’是区位码是2628，或者看<a href="http://www.laoniangke.com/?p=577" title="php中文转拼音原理，实现">这篇文章</a>如何获取汉字的区位码。GB2312字符集构成一个94行、94列的二维表，行号称为区号，列号称为位号。“杭”字的区号为26，位号为28。转换成二进制位26=》11010，28=》11100。
+区位码无法用于汉字通信，因为它可能与通信使用的控制码（00H~1FH）（即0~31）发生冲突。ISO2022规定每个汉字的区号和位号必须分别加上32（即二进制数00100000），经过这样的处理而得的代码称为国标交换码，简称交换码
+
+<pre>
+   00011010  00011100
+ + 00100000 +00100000
+ -------------------
+ 00111010 00111100
+</pre>
+
+由于文本中通常混合使用汉字和西文字符，汉字信息如果不予以特别标识，就会与单字节的ASCII码混淆。此问题的解决方法之一是将一个汉字看成是两个扩展ASCII码，使表示GB2312汉字的两个字节的最高位都为1。这种高位为1的双字节汉字编码即为GB2312汉字的机内码，简称为内码
+
+<pre>
+   00011010  00011100
+ +10100000 +10100000
+ -------------------
+ 10111010 10111100
+</pre>
+
+转为16进制为：babc
+
+同理可得‘州’为d6dd
+<pre>code  +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F
+BAA0     骸 孩 海 氦 亥 害 骇 酣 憨 邯 韩 含 涵 寒 函
+BAB0  喊 罕 翰 撼 捍 旱 憾 悍 焊 汗 汉 夯 杭 航 壕 嚎
+BAC0  豪 毫 郝 好 耗 号 浩 呵 喝 荷 菏 核 禾 和 何 合
+BAD0  盒 貉 阂 河 涸 赫 褐 鹤 贺 嘿 黑 痕 很 狠 恨 哼
+BAE0  亨 横 衡 恒 轰 哄 烘 虹 鸿 洪 宏 弘 红 喉 侯 猴
+BAF0  吼 厚 候 后 呼 乎 忽 瑚 壶 葫 胡 蝴 狐 糊 湖 
+
+code  +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F
+D6A0     帧 症 郑 证 芝 枝 支 吱 蜘 知 肢 脂 汁 之 织
+D6B0  职 直 植 殖 执 值 侄 址 指 止 趾 只 旨 纸 志 挚
+D6C0  掷 至 致 置 帜 峙 制 智 秩 稚 质 炙 痔 滞 治 窒
+D6D0  中 盅 忠 钟 衷 终 种 肿 重 仲 众 舟 周 州 洲 诌
+D6E0  粥 轴 肘 帚 咒 皱 宙 昼 骤 珠 株 蛛 朱 猪 诸 诛
+D6F0  逐 竹 烛 煮 拄 瞩 嘱 主 著 柱 助 蛀 贮 铸 筑</pre>
+
+参考资料：
+
+<a href="http://www.knowsky.com/resource/gb2312tbl.htm">http://www.knowsky.com/resource/gb2312tbl.htm</a><br />
+百度文库《区位码 机器码 内码关系》<br />
+<a href="http://www.unicode.org/">http://www.unicode.org/</a>

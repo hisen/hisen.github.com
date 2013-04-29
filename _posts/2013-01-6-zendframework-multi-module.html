@@ -1,0 +1,233 @@
+---
+layout: post
+title: zendframework多模块配置
+category: zendframework
+keywords: zf框架,zf配置
+---
+
+<p>目前所在小组使用到的都是基于zf框架搭建的项目。相比老系统的结构与代码的逻辑性方面，基于zf搭建的系统还是有明显好处。在多人开发的情况下,代码的可控性上也有它的优势。</p>
+<p>首先来讲讲jgbcrm的配置运行方式，使用了多模块配置方式。其中流程基本上和我配置的相同，这边就大致讲下一些环境的区别和使用要点。<br />
+index.php->config.php->Bootstrap.php(application目录下)->Common.php(类名Jgb_Controller_Plugin_Common)</p>
+<p>1）index.php和config.php合起来是引导文件<br />
+2）Bootstrap.php初始化一些系统的配置信息，并注册插件类Jgb_Controller_Plugin_Common<br />
+3）Common.php对具体的插件类进行注册，包括Db，smarty，以及相应模块的插件。其中Db封装之后，数据库操作类都是继承了这个类，具体实现了主从的多数据库对象获取，以及自定义数据库适配器adapterNamespace。</p>
+<p>下面的安装方式是使用了NetBeans生产的zf项目之后修改而来的，以下是具体的配置方式：</p>
+<p>目录结构：</p>
+<pre>
+├─application
+│  │  Bootstrap.php
+│  ├─configs
+│  │      application.ini
+│  └─modules
+│      │  Bootstrap.php
+│      ├─blog
+│      │  │  Bootstrap.php
+│      │  ├─apps
+│      │  │      Linux.php
+│      │  ├─controllers
+│      │  │      IndexController.php
+│      │  └─models
+│      │          Book.php
+│      └─default
+│          │  Bootstrap.php
+│          ├─controllers
+│          │      ErrorController.php
+│          │      IndexController.php
+│          └─models
+│                  Book.php
+└─public
+│  .htaccess
+│  index.php
+├─css
+│      cssweb.css
+├─images
+└─js
+</pre>
+<p><span id="more-633"></span><br />
+<strong>1.首先配置apache</strong><br />
+开启urlrewrite，打开httpd.cnf找到
+<pre>#LoadModule rewrite_module modules/mod_rewrite.so</pre>
+<p>去掉前面的#；<br />
+配置虚拟主机，找到
+<pre>#LoadModule vhost_alias_module modules/mod_vhost_alias.so</pre>
+<p>，去掉前面的#,我的配置信息如下：</p>
+<pre>
+NameVirtualHost 127.0.0.1:8080
+Listen 127.0.0.1:8080
+<VirtualHost *:8080>
+ServerName zend
+DocumentRoot "D:/wamp/www/Zend-1.0/public"
+<Directory "D:/wamp/www/Zend-1.0/public">
+AllowOverride All
+Allow from all
+</Directory>
+
+SetEnv APPLICATION_ENV "development"
+
+ErrorLog "logs/rentaflat-error-1.0.log"
+CustomLog "logs/rentaflat-access-1.0.log" combined
+</VirtualHost>
+</pre>
+<p>使用的常量APPLICATION_ENV在apache中进行了配置，用来区分开发环境和生产环境，也可以在.htaccess进行配置。个人觉得配置在apache中比较适合，配置在.htaccess可能会不小心被覆盖或修改</p>
+<p><strong>2.配置.htaccess</strong></p>
+<pre>
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} -s [OR]
+RewriteCond %{REQUEST_FILENAME} -l [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^.*$ - [NC,L]
+RewriteRule ^.*$ index.php [NC,L]
+</pre>
+<p>这里可能会发现上面的目录结构中没有zendframework的包，因为我放到了整个项目的外面，只要确保include这个path就可以了。</p>
+<pre>
+set_include_path(implode(PATH_SEPARATOR, array(
+    //realpath(APPLICATION_PATH . '/../library'),
+    realpath(APPLICATION_PATH . "/../../lib/zf1.0"),
+    get_include_path(),
+)));
+</pre>
+<p>lib和D:/wamp/www/Zend-1.0的Zend-1.0是同级的<br />
+使程序的访问路径都到index.php这个入口。这一步配置好了，就可以直接输入127.0.0.1:8080查看是否成功显示了。</p>
+<p><strong>3.修改了application.ini文件</strong><br />
+设置模块路径</p>
+<pre>
+resources.frontController.moduleDirectory = APPLICATION_PATH "/modules"
+resources.modules[]=""
+</pre>
+<p>使用了mysql的PDO，必须得开启php.ini文件下的;extension=php_pdo_mysql.dll<br />
+去掉前面的&#8221;;&#8221;符号<br />
+aplication.ini的具体内容为</p>
+<pre>
+[production]
+phpSettings.display_startup_errors = 0
+phpSettings.display_errors = 0
+bootstrap.path = APPLICATION_PATH "/Bootstrap.php"
+bootstrap.class = "Bootstrap"
+appnamespace = "Application"
+resources.view.encoding = "UTF-8"
+
+resources.frontController.moduleDirectory = APPLICATION_PATH "/modules"
+resources.modules[]=""
+
+resources.db.adapter = "pdo_mysql"
+resources.db.params.host = "localhost"
+resources.db.params.username = "root"
+resources.db.params.password = ""
+resources.db.params.dbname = "zf1.0"
+resources.db.isDefaultTableAdapter = true
+resources.db.params.charset = "utf8"
+
+[staging : production]
+
+[testing : production]
+phpSettings.display_startup_errors = 1
+phpSettings.display_errors = 1
+
+[development : production]
+phpSettings.display_startup_errors = 1
+phpSettings.display_errors = 1
+resources.frontController.params.displayExceptions = 1
+resources.frontController.throwExceptions = 1
+</pre>
+<p><strong>4.在相应的模块下新增Bootstrap.php文件</strong></p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+class Default_Bootstrap extends Zend_Application_Module_Bootstrap
+{
+     protected $_moduleName = 'default';
+
+     public function _initAutoload()
+     {
+         $moduleLoader = new Zend_Application_Module_Autoloader(array(
+             'namespace' =&gt; 'Default',
+             'basePath' =&gt; APPLICATION_PATH . '/modules/default',
+         ));
+
+        return $moduleLoader;
+     }
+}
+</pre>
+<p>其中Zend_Application_Module_Autoloader默认会加载的目录是</p>
+<pre>
+forms/       => Form
+models/      => Model
+DbTable/ => Model_DbTable
+mappers/ => Model_Mapper
+plugins/     => Plugin
+services/    => Service
+views/
+helpers  => View_Helper
+filters  => View_Filter
+</pre>
+<p>As an example, if you have a module with the prefix of &#8220;Blog_&#8221;, and attempted to instantiate the class &#8220;Blog_Form_Entry&#8221;, it would look in the resource directory&#8217;s &#8220;forms/&#8221; subdirectory for a file named &#8220;Entry.php&#8221;.（例如，如果你有一个模块的前缀是“Blog_”，并试图实例化类&#8221;Blog_Form_Entry&#8221;，它会在&#8221;forms/&#8221; 资源目录中，以Entry.php命名）</p>
+<p>如果你想加入自己需要的资源，你可以使用Zend_Application_Module_Autoloader的resourceTypes，如blog模块下的Bootstrap.php文件</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+class Blog_Bootstrap extends Zend_Application_Module_Bootstrap
+{
+     protected $_moduleName = 'blog';
+
+     public function _initAutoload()
+     {
+        $moduleLoader = new Zend_Application_Module_Autoloader(array(
+           'namespace' =&gt; 'Blog',
+           'basePath' =&gt; APPLICATION_PATH . '/modules/blog',
+           'resourceTypes' =&gt; array(
+              'app' =&gt; array('path' =&gt; 'apps','namespace' =&gt; 'App')
+            )
+        ));
+
+       return $moduleLoader;
+     }
+}
+</pre>
+<p><strong>5.新增module目录文件</strong><br />
+按目录树在相应的目录下新增controllers，models目录，新建controller和model文件就可以了。</p>
+<p>到此zendframework多模块配置就结束了。</p>
+<p>aplication.ini的一些配置信息的注释：<br />
+Zend_Application 提供了一个可重用资源的引导，通用和模块化的引导类和依赖检查。 同时默认负责设置 PHP 环境变量和自动加载功能。<br />
+其中的php环境变量的设置</p>
+<pre>
+phpSettings.display_errors = 0
+phpSettings.error_reporting = E_ALL &#038; ~E_NOTICE
+phpSettings.date.timezone="Europe/Prague"
+</pre>
+<p>添加额外的include_path目录</p>
+<pre>includePaths.library = APPLICATION_PATH "/../library"</pre>
+<p>可以被Zend_Loader_Autoloader实例注册,其中Zend_和ZendX_是会默认被加载的</p>
+<pre>
+autoloaderNamespaces.0 = "Zend_"
+autoloaderNamespaces.1 = "ZendX_"
+autoloaderNamespaces.2 = "php_"
+</pre>
+<p>引导程序</p>
+<pre>
+bootstrap.path = APPLICATION_PATH "/Bootstrap.php"
+bootstrap.class = "Bootstrap"
+appnamespace = "Application"
+</pre>
+<p>其中的数据库设置</p>
+<pre>resources.db.adapter</pre>
+<p>// 多重数据库</p>
+<pre>
+resources.multidb.db1.adapter
+resources.multidb.db2.adapter
+</pre>
+<p>zend框架提供了一个用来处理从程序抛出的异常的插件，其中默认是在default模块下。同时也可以指定使用某个错误处理程序，方法如下：</p>
+<pre>
+$front = Zend_Controller_Front::getInstance();
+$front->registerPlugin(new Zend_Controller_Plugin_ErrorHandler(array(
+'module'     => 'blog',
+'controller' => 'error',
+'action'     => 'error'
+)));
+</pre>
+<p>当程序有错误时候，会调用blog模块下的ErrorController.php。这样就可以做到具体模块使用具体的ErrorController了</p>
+<p>如果需要自定义数据库适配器类，在application.ini的数据库配置项中新增</p>
+<pre>resources.db.params.adapterNamespace = “HisenKing”</pre>
+<p>数据库相关的详细介绍可查看zendframework官方的<a href="http://framework.zend.com/manual/1.12/en/zend.db.adapter.html" title="zendframework" target="_blank">Zend_Db_Adapter</a>介绍</p>
+<p><strong>如有错误，还请告知</strong></p>
+<p>参考资料：<br />
+《zendframework手册》</p>
+<p>http://framework.zend.com/learn</p>

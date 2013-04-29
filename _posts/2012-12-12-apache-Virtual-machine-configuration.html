@@ -1,0 +1,82 @@
+---
+layout: post
+title: apache几种虚拟主机配置方式
+category: apache
+keywords: apache虚拟主机
+---
+
+<p>虚拟主机一般运用于web主机托管，以及一些基于名字的虚拟主机。用于消除需要给web服务程序分配唯一IP地址或在操作系统层面上配置特殊接口的要求。以下是配置虚拟主机的几种方式：</p>
+
+<p>1.基于名称的虚拟主机
+打开Apache的配置文件httpd.conf,找到#Include conf/extra/httpd-vhosts.conf，去除前面的#号，当然如果你不打算配置在httpd-vhosts.conf也可以直接写在httpd.conf</p>
+
+<pre>&lt;VirtualHost *:80&gt;
+ServerAdmin hisenKing@laoniangke.com
+DocumentRoot "/var/www/"
+ServerName www.laoniangke.com
+ErrorLog "/var/logs/error.log"
+CustomLog "/var/logs/access.log" common
+&lt;/VirtualHost&gt;
+</pre>
+
+<p>如需检查Apache配置是否正确可以使用httpd -t进行测试。如返回“Syntax OK”，即代表配置成功，（如果是在本机上测试，还需配置host将www.laoniangke.com指向到本机。）
+可使用httpd -S，查看本机有哪些虚拟主机。</p>
+
+<p>重 启apache即可通过访问，如果浏览器放回403 Forbidden，查看apache的错误日志“client denied by server configuration”，则说明你的apache的Directory配置拒绝访问改目录以及其子目录，修改父&lt;Directory&gt; 配置信息，或者添加&lt;Directory&gt;信息如下：</p>
+
+<pre>&lt;VirtualHost *:80&gt;
+ServerAdmin hisenKing@laoniangke.com
+DocumentRoot "/var/www/"
+ServerName www.laoniangke.com
+&lt;Directory "/var/www/"&gt;
+Order Deny,Allow
+Allow from all
+&lt;/Directory&gt;
+ErrorLog "/var/logs/error.log"
+CustomLog "/var/logs/access.log" common
+&lt;/VirtualHost&gt;
+</pre>
+
+<p>2，基于端口的虚拟主机
+可能遇到apache默认的端口80被占用了，这样我们需要给apache使用新的端口。通常使用8080端口。配置文件httpd.conf需要添加 “Listen 8080”，正如外网生产环境下的crm系统使用的是https://xxxxx.com.cn:7443/jgbcrm/的7443端口一样。只需 要&lt;VirtualHost *:80&gt;的80替换为8080。</p>
+
+<pre>&lt;VirtualHost *:8080&gt;
+DocumentRoot "/var/www/"
+ServerName www.laoniangke.com
+&lt;/VirtualHost&gt;
+</pre>
+
+<p>这边需要注意的是如果不是使用80端口的，url地址必须得加上端口号，不然将无法访问。</p>
+
+<p>3.基于ip地址的虚拟主机
+配置方式只是&lt;VirtualHost <em>:8080&gt;中的</em>写明具体的ip地址</p>
+
+<pre>&lt;VirtualHost 61.135.169.105:80&gt;
+DocumentRoot "/var/www/"
+ServerName www.laoniangke.com
+&lt;/VirtualHost&gt;
+</pre>
+
+<p>如果需要不同的ip访问同一个虚拟主机，&lt;VirtualHost 61.135.169.105 61.135.169.100&gt;</p>
+
+<p>4.虚拟目录：
+SSL协议先天特性决定了基于域名的虚拟主机无法成为SSL安全服务器。而且部门系统资源使用有限，一般一台机子上跑很多的运用。如b2b的crm系统都是在同一台机子上。这样使用虚拟目录是最恰当的选择。</p>
+
+<pre>Alias /phpmyadmin "/var/www/phpmyadmin/"
+&lt;Directory "/var/www/phpmyadmin3.4.10.1/"&gt;
+AllowOverride all
+Order Deny,Allow
+Deny from all
+Allow from 127.0.0.1
+&lt;/Directory&gt;
+</pre>
+
+<p>其中Alias /phpmyadmin填写的时候需要注意，如果后面添加了"/"，则便是以/phpmyadmin/开头的url。当访问127.0.0.1/phpmyadmin将提示404 Not Found</p>
+
+<p>还有一个坑是如果httpd.conf中apache根目录设置为DocumentRoot "/var/www",但是后面的虚拟主机可能会覆盖根目录的地址。如以下配置在phpinfo中输出的DOCUMENT_ROOT就是/var/Apache/htdocs</p>
+
+<pre>&lt;VirtualHost *:80&gt;
+    ServerAdmin webmaster@www.laoniangke.com
+    DocumentRoot "/var/Apache/htdocs"
+&lt;/VirtualHost&gt;
+</pre>

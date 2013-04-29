@@ -1,0 +1,64 @@
+---
+layout: post
+title: php时间处理月份计算bug总结
+category: php
+keywords: php,php月份计算bug
+---
+
+<p>首先看下以下的代码，其中的结果并不是预期的2013-2-28</p>
+
+<pre>&lt;?php
+$date = '2013-01-31';
+$nextMonth = strtotime('+1 month',strtotime($date));
+$nextMonthDate = date("Y-m-d",$nextMonthDate);
+// 结果返回2013-03-03
+</pre>
+
+<p>在来看下Linux 命令date，处理的月份计算的情况</p>
+
+<pre>$ date +"%Y-%m-%d" -d '2013-01-31 +1 month'
+// 输出结果也是2013-03-03
+</pre>
+
+<p>看下sql的情况</p>
+
+<pre>mysql&gt; SELECT DATE_ADD('2013-01-31', INTERVAL 1 MONTH);
+        -&gt; '2013-02-28
+</pre>
+
+<p>sql正确，php和linux命令都有问题。同时发现一个规律在处理月份的时间，原始日期指定这个月的某天超过结果月的天数时，会自动包含到下个月。
+如：2013-03-31 加上一个月，结果则为2013-05-01。即2013-03-31加上一个月，得到2013-04-31，但是4月份并没有31号这一天，所以往下个月推一天，即得到2013-05-01；同理2013-01-31加一个月就得到了2013-03-03</p>
+
+<p><strong>php解决的办法</strong>：
+1.在程序中避免月末的时候使用加减month操作
+如统计数据的时候，程序放在月初执行或者时间换成月初，
+2013-01-31，取前面的年月2013-01，代码补齐后面的日，时分秒2013-01 . '-01 00:00:00'
+月末的使用date("Y-m-t")</p>
+
+<p>2.代码中完善月份计算
+其中zend框架的Zend_Date对月份的计算就进行了完善。</p>
+
+<pre>&lt;?php
+$zfdate = new Zend_Date('2013-01-31');
+$zfdate-&gt;addMonth('1');
+// 2013-2-28
+
+$zfdate = new Zend_Date('2013-03-31');
+$zfdate-&gt;addMonth('1');
+// 2013-4-30
+</pre>
+
+<p>代码逻辑处理部分是Date.php</p>
+
+<pre>if (self::$_options['extend_month'] === false) {
+      $parts = $this-&gt;getDateParts($this-&gt;mktime(
+                   $hour, $minute, $second, $date, $day, $year, false));
+      if ($parts['mday'] != $day) {
+             $fixday = ($parts['mday'] &lt; $day) 
+                        ? -$parts['mday'] : ($parts['mday'] - $day);
+      }
+}
+</pre>
+
+<p>其中的$day为原始日期的day，$parts['mday']为结果月的day
+extend_month默认为false，处理月份的时间按sql方式兼容</p>

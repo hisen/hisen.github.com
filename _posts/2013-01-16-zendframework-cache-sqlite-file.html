@@ -1,0 +1,191 @@
+---
+layout: post
+title: zendframework缓存之sqlite，file类型缓存实例
+category: zendframework
+keywords: zf框架,zf缓存
+---
+
+<p>zend缓存功能比较全，其中部分缓存方式可以通过id和tag进行操作，这样极大的方面了缓存的控制。
+手册上对sqlite的缓存只是点到即止，其中测试的时候由于想当然也掉了坑里面。
+使用sqlite，以及文件形式的缓存，支持id和tag方式（id是唯一的，tag可以有多个），个人觉得非常实用</p>
+
+<pre>$frontendOptions = array(
+   // 缓存生命期，以秒为计算单位
+   'lifeTime' =&gt; 10, 
+   // 是否开启序列化，湖缓存array类型数据的时候必须开启
+   'automatic_serialization' =&gt; true 
+);
+
+$backendOptions = array(
+    // 放缓存文件的目录
+    'cache_db_complete_path' =&gt; APPLICATION_PATH . '/cache/sqlite/cache.db' 
+);
+
+// 取得一个Zend_Cache_Core 对象
+$cache = Zend_Cache::factory('Output',
+                             'Sqlite',
+                             $frontendOptions,
+                             $backendOptions);
+</pre>
+
+<p>可能遇到的问题，以及注意点
+如果未开启sqlite报错
+Fatal error: Uncaught exception 'Zend<em>Cache</em>Exception' with message 'Cannot use SQLite storage because the 'sqlite' extension is not loaded in the current PHP environment'
+代开php.ini找到;extension=php<em>sqlite.dll一行，去掉前面的';'分号并重启服务器就可以了。
+<!--more-->
+如果存array的话，不开启'automatic</em>serialization' =&gt; true报错
+Fatal error: Uncaught exception 'Zend<em>Cache</em>Exception' with message 'Datas must be string or set automatic_serialization = true'</p>
+
+<p>这里踩了坑以为必须像安装wordpress等软件一样需要进行创建数据库，结果不小心在里面还定义了一个表。导致一直报错
+Fatal error: Uncaught exception 'Zend<em>Cache</em>Exception' with message 'Impossible to open</p>
+
+<p>查看源代码只要定义好sqlite的完整的数据库文件路径，会自动创建数据库文件</p>
+
+<p>保存数据</p>
+
+<pre>$cache-&gt;save($city,'city',array('tagA','tagB'));</pre>
+
+读取数据
+<pre>$data = $cache-&gt;load('city',$doNotTestCacheValidity);</pre>
+$doNotTestCacheValidity bool类型，表示是否滤掉过期的数据，默认为false
+
+删除id
+<pre>$cache-&gt;remove($id);</pre>
+
+删除tag对应的缓存有一下几种方式
+<pre>$cache-&gt;clean($mode,'tagA');
+
+* Zend_Cache::CLEANING_MODE_ALL (default)    =&gt; 删除全部的缓存信息，无需传递tags
+* Zend_Cache::CLEANING_MODE_OLD              =&gt; 删除过期的缓存信息，无需传递tags
+* Zend_Cache::CLEANING_MODE_MATCHING_TAG     =&gt; 删除匹配的tag缓存，传递的tag可以是数组或是字符串
+* Zend_Cache::CLEANING_MODE_NOT_MATCHING_TAG =&gt; 删除未匹配的tag缓存，传递的tag可以是数组或是字符串
+* Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG =&gt; 删除任意匹配的tag缓存，传递的tag可以是数组或是字符串)
+</pre>
+
+<p><strong>SQLITE实例：</strong></p>
+
+<p>php端代码：</p>
+
+<pre>&lt;?php
+   public function trycachesqliteAction()
+   {
+        $frontendOptions = array(
+           'lifeTime' =&gt; 7200,
+           'automatic_serialization' =&gt; true
+        );
+
+        $backendOptions = array(
+            'cache_db_complete_path'=&gt;APPLICATION_PATH.'/cache/cache.db'
+        );
+
+        $cache = Zend_Cache::factory('Output',
+                                     'Sqlite',
+                                     $frontendOptions,
+                                     $backendOptions);
+
+
+        $id = 'province';
+        if (!($data = $cache-&gt;load($id))) {
+            $data = array('湖南','湖北');
+            $cache-&gt;save($data);
+        }
+
+        $this-&gt;view-&gt;data = implode('","', $data);
+    }
+</pre>
+
+<p>html代码：</p>
+
+<pre>    $("#autocomplete").autocomplete(["&lt;?php echo $this-&gt;data; ?&gt;"], {
+        width: 320,
+        max: 4,
+        highlight: false,
+        multiple: true,
+        multipleSeparator: " ",
+        scroll: true,
+        scrollHeight: 300
+    });
+</pre>
+
+<p>效果：
+<a href="{{ site:url }}/uploads/2013/01/sqliteCache.png"><img src="{{ site:url }}/uploads/2013/01/sqliteCache.png" alt="zend缓存" title="sqliteCache" width="346" height="83" class="alignnone size-full wp-image-651"></a></p>
+
+<p><strong>FILE类型实例：</strong></p>
+
+<p>php端：</p>
+
+<pre>    $frontendOptions = array(
+       'lifeTime' =&gt; 60, // 一分钟的缓存生命期
+       'automatic_serialization' =&gt; true
+    );
+
+    $backendOptions = array(
+        'cache_dir' =&gt; APPLICATION_PATH . '/cache/ztree' // 放缓存文件的目录
+    );
+
+    // 取得一个Zend_Cache_Core 对象
+    $cache = Zend_Cache::factory('Output',
+                                 'File',
+                                 $frontendOptions,
+                                 $backendOptions);
+
+
+    $id = 'city'; // 缓存的id
+    if (!($data = $cache-&gt;load($id))) {
+        $city = array(
+                '浙江' =&gt; array('杭州','温州','宁波','绍兴'),
+                '江苏' =&gt; array('南京','无锡','扬州','南通'),
+                '福建' =&gt; array('厦门')
+        );
+
+        $id = 0;
+        foreach ($city as $key =&gt; $value) {
+            $pData = array('name' =&gt; $key);
+            foreach ($value as $ckey =&gt; $cvalue) {
+                $cData[$key][] = array('name' =&gt; $cvalue);
+            }
+            $pData['children'] = $cData[$key];
+
+            $data[] = $pData;
+        }
+        $cache-&gt;save($data,'city',array('city'));
+
+    }
+
+    $jdata = json_encode($data);
+    $this-&gt;view-&gt;data = $jdata;
+</pre>
+
+<p>html端：</p>
+
+<pre>&lt;!DOCTYPE html &gt;
+&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;
+    &lt;head&gt;
+        &lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8" /&gt;
+        &lt;link rel="stylesheet" href="/js/JQuery zTree v3.5/css/zTreeStyle/zTreeStyle.css" type="text/css"&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;div class="zTreeDemoBackground left"&gt;
+        &lt;ul id="treeDemo" class="ztree"&gt;&lt;/ul&gt;
+    &lt;/div&gt;
+    &lt;/body&gt;
+    &lt;script type="text/javascript" src="/js/JQuery zTree v3.5/js/jquery-1.4.4.min.js"&gt;&lt;/script&gt;
+    &lt;script type="text/javascript" src="/js/JQuery zTree v3.5/js/jquery.ztree.core-3.5.js"&gt;&lt;/script&gt;
+    &lt;script type="text/javascript"&gt;
+        &lt;!--
+        var setting = {};
+
+        var zNodes = &lt;?php echo $this-&gt;data;?&gt;;
+        $(document).ready(function(){
+            $.fn.zTree.init($("#treeDemo"), setting, zNodes);
+        });
+        //--&gt;
+    &lt;/script&gt;
+&lt;/html&gt;
+</pre>
+
+<p>效果：
+<a href="{{ site:url }}/uploads/2013/01/fileCache.png"><img src="{{ site:url }}/uploads/2013/01/fileCache.png" alt="zend缓存" title="fileCache" width="130" height="229" class="alignnone size-full wp-image-650"></a></p>
+
+<p>总结：
+在系统数据量的增长和功能逻辑上的复杂性加深，可以预见的不久将加入缓存的功能。目前的做法权限生产数据表，缓存在表中这无形的加大了数据库的负担，个人觉得不是一个很好的方式。</p>

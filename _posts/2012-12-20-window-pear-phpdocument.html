@@ -1,0 +1,91 @@
+---
+layout: post
+title: window下安装pear，phpDocument
+category: php
+keywords: php,phpDocument
+---
+
+<p>windows下php环境没有go-pear.bat安装包，又使用的是php5.3.10，网上很多安装教程不适用，尝试的时候提示 “Sorry!&nbsp; Your PHP version is too new (5.3.10) for this go-pear.”。那直接上pear官网http://pear.php.net/上查看查看如何安装pear。</p>
+
+<p>1.根据官网的介绍首先下载&nbsp;<a href="http://pear.php.net/go-pear.phar">http://pear.php.net/go-pear.phar</a>文件。这边我将它放在php的根目录。</p>
+
+<p>2.使用命令</p><pre>php go-pear.phar</pre>安装
+这边会让你选择安装的方式Are you installing a system-wide PEAR or a local copy?
+(system|local) [system] :&nbsp; <strong>local
+</strong>当然你也可以选在system
+<a href="{{ site:url }}/uploads/2012/12//pear_install.png"><img class="alignnone size-full wp-image-615" title="pear_install" src="{{ site:url }}/uploads/2012/12//pear_install.png" alt="" width="593" height="592"></a><p></p>
+
+<p>上图选择all后，敲回车就可以了。</p>
+
+<p><a href="{{ site:url }}/uploads/2012/12//pear_ok.png"><img class="alignnone size-full wp-image-616" title="pear_ok" src="{{ site:url }}/uploads/2012/12//pear_ok.png" alt="" width="635" height="600"></a></p>
+
+<p>到此pear就安装成功了。输入命令行参看</p>
+
+<p><a href="{{ site:url }}/uploads/2012/12//pear_list.png"><img class="alignnone size-full wp-image-617" title="pear_list" src="{{ site:url }}/uploads/2012/12//pear_list.png" alt="" width="366" height="148"></a></p>
+
+<p>3.将pear添加到include目录中include<em>path = ".;D:\wamp\bin\php\php5.3.10\pear"。并测试是否已经包含，新建一个文件check</em>pear.php</p>
+
+<pre>&lt;?php
+require_once 'System.php';
+var_dump(class_exists('System', false));</pre>
+因为<code>System.php</code>&nbsp;is shipped with every PEAR installation and thus should be on your computer（system.php文件是被每一个pear安装包装载的，因此会在你的电脑上），所以当输出<small>boolean</small> true表明目录已经安装成功，否则表示失败。
+
+<strong>安装phpDocument</strong>
+
+写 文档是一项乏味却不得不做的工作，而编写API级的文档更是意味着大量的重复劳动和难以保持的一致性。phpDocumentor就是支持 PHP5 语法分析的文档工具。 使用phpDocumentor不仅可以自动从代码中提取出函数和方法定义，还可以自动处理各个class 之间的关系，并据此生成class tree 。你还可以选择将文档生成html、chm或者pdf。有了phpDocumentor，文档工作变得轻松了很多。
+
+安装phpDocument也很简单，上面的pear安装后，会在pear的安装目录生成一个pear.bat文件。利用这个pear.bat就可以安装phpDocument了。方式如下：
+
+在cmd窗口中cd到php的根目录，输入
+<pre>pear.bat install -o PhpDocumentor</pre>
+-o 的参数，意思是要 pear 把相依的套件也一起下载安装。
+
+这里我运行下载的是phpDocument1.4.4版本。下载安装之后，会在根目录下生成一个phpdoc.php文件，pear文件夹下会多一个phpDocument文件夹。
+
+在phpdoc.bat 所在目录下，输入
+<pre>phpdoc –h</pre>
+会输出一个详细的参数表，其中几个重要的参数如下：
+-f 要进行分析的文件名，多个文件用逗号隔开
+-d 要分析的目录，多个目录用逗号分割
+-t 生成的文档的存放路径
+-o 输出的文档格式，结构为输出格式：转换器名：模板目录。例如：HTML:frames:phpedit
+-pp 输出文档包含私有方法与属性
+
+下面是具体的一个使用例子：
+
+<pre>&lt;?php
+/**
+* @filename baseDoc.php
+* @touch date Thu, 20 Dec 2012 13:10:41 GMT
+* @package phpDocumentor demo
+* @author HisenKing
+* @version 1.0.0
+* @copyright (c) 2012, HisenKing
+*/
+
+/**
+* 取类的名称
+* &lt;code&gt;
+* $className = getClassName(book,language)
+* &lt;/code&gt;
+* @deprecated
+* @param string $name&nbsp; 前缀
+* @param string|int&nbsp; $type&nbsp; 类型
+* @return string
+*/
+function getClassName($name,$type){
+$className = $name . $type;
+return $className
+}
+&gt;
+</pre>
+
+<pre>phpdoc -o HTML:frames:earthli -f D:\wamp\www\docTest\test.php
+-t D:\wamp\www\docs</pre>
+
+<p><a href="{{ site:url }}/uploads/2012/12//phpdocument.png"><img src="{{ site:url }}/uploads/2012/12//phpdocument.png" alt="" title="phpdocument" width="538" height="191" class="alignnone size-full wp-image-628"></a></p>
+
+<p>错误的信息会存放在D:\wamp\www\docs/errors.html文件中，进入D:\wamp\www\docs
+用浏览器打开index.html 就可以看见生成的文档了</p>
+
+<p>phpDocumentor相关的tags的说明见官方网站的说明&nbsp;<a href="http://manual.phpdoc.org/HTMLSmartyConverter/HandS/phpDocumentor/tutorial_phpDocumentor.pkg.html" target="_blank">tags说明手册</a></p>

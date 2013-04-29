@@ -1,0 +1,52 @@
+---
+layout: post
+title: 关于时间计算的思考
+category: php
+keywords: time,格林威治时间
+---
+
+<p>今天同事发了段代码给我，问我为什么php时间相加，返回的结构不正确。代码如下</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+date_default_timezone_set('Asia/shanghai');
+echo date('Y-m-d H:i:s',526921200),&quot;&lt;br&gt;&quot;;
+echo date('Y-m-d H:i:s',526921200 + 86400),&quot;&lt;br&gt;&quot;;
+echo date('Y-m-d H:i:s',526921200 + 90000);
+</pre>
+<p>大家想想结果会是什么？</p>
+<p><code>再来看下《php实战》中日期和时间处理一章中的一段代码</p>
+<p>$timestamp=mktime(23,30,0,3,24,2007);<br />
+echo strftime("%B,%e",$timestamp)."\n";<br />
+$timestamp += 24*60*60; // add 24 hours<br />
+echo strftime("%B,%e",$timestamp)."\n";</p>
+<p>很遗憾，输出的结果如下所示。</p>
+<p>March 24</p>
+<p>March 26</p>
+<p>原因在与夏令时。php的日期 和时间函数会自动处理夏令时。如果夏令时从3月25日开始，而你在前一个午夜之前的那个小时开始，就会在3月26日的午夜之后结束，因为根据时钟，3月25日只有23个小时。</code></p>
+<p><span id="more-278"></span></p>
+<p>之前在大牛的博客上见过类似这个神奇的问题，因为得以有思路回复。其实在处理时间上，如果需要非常精确的话一定要使用GMT标准时间。以上代码结果输出分别是1986-09-13 00:00:00；1986-09-13 23:00:00；1986-09-14 00:00:00<br />
+为什么会出现这个问题呢？大家看下<a title="时间" href="http://www.timeanddate.com/worldclock/clockchange.html?n=237&amp;year=1986">这个网页<br />
+</a><a href="{{ site:url }}/uploads/2012/05/1986time.jpg"><img class="alignnone size-full wp-image-283" title="1986time" src="{{ site:url }}/uploads/2012/05/1986time.jpg" alt="时间" width="672" height="289" /></a><br />
+其中这里说明了当时间为1986-09-13 23:59:59再继续往后走一秒，应该是1986-09-14 00:00:00。但是这个时间往后调整了1个小时，变为了1986-09-13 23:00:00。<br />
+那么如何解决这个问题呢？代码如下：</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+date_default_timezone_set('Asia/shanghai');
+//方法一
+$t = gmmktime(0,0,0,9,13,1986);
+echo gmdate('Y-m-d H:i:s',$t)；
+echo gmdate('Y-m-d H:i:s',$t + 86400)；
+
+//方法二
+$time = strtotime('1986-9-13 00:00:00');
+$time_step = strtotime('+1 day',$time);
+echo date('Y-m-d H:i:s',$time_step);
+</pre>
+<p>此类问题还有类似</p>
+<pre class="brush: php; title: ; notranslate" title="">
+&lt;?php
+$a1 = strtotime('1927-12-31 23:54:08');
+$a2 = strtotime('1927-12-31 23:54:07');
+echo $a1-$a2;//353
+</pre>
+<p>具体分析看酷壳上的<a href="http://coolshell.cn/articles/5075.html/comment-page-1#comments">你确信你了解时间吗？</a></p>

@@ -1,0 +1,164 @@
+---
+layout: post
+title: 树莓派安装vsftp手记
+category: Raspberry Pi
+keywords: 树莓派,树莓派安装vsftp
+---
+
+<p>安装vsftp</p>
+
+<pre>$sudo apt-get install vsftpd</pre>
+
+查看是否已经启动
+<pre>$sudo netstat -tupln|grep 21</pre>
+<pre>Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:21              0.0.0.0:*               LISTEN      - 
+</pre>
+
+<p>修改配置文件/etc/vsftpd.conf
+禁止匿名用户登录</p>
+
+<pre>anonymous_enable=NO</pre>
+
+是否允许写入权限
+<pre>write_enable=YES</pre>
+
+重启vsftp
+<pre>$sudo /etc/init.d/vsftpd restart</pre>
+
+到此使用filezilla用root账号登陆测试登陆成功
+
+尝试创建普通账号，和nologin账号进行测试
+首先新增账号
+<pre>$sudo adduser hisen</pre>
+<pre>Adding user `hisen' ..
+Adding new group `hisen' (1002) ...
+Adding new user `hisen' (1001) with group `hisen' ...
+Creating home directory `/home/hisen' ...
+Copying files from `/etc/skel' ...
+Enter new UNIX password: 
+Retype new UNIX password: 
+passwd: password updated successfully
+Changing the user information for hisen
+Enter the new value, or press ENTER for the default
+        Full Name []: 
+        Room Number []: 
+        Work Phone []: 
+        Home Phone []: 
+        Other []: 
+Is the information correct? [Y/n] y
+</pre>
+
+<p>使用新增的账号测试FTP成功。</p>
+
+<p>创建nologin账号</p>
+
+<pre>$sudo adduser hisen_nologin -d /home/nologin -s /sbin/nologin</pre>
+报错为
+<pre>Option d is ambiguous (debug, disabled-login, disabled-password)
+Option s is ambiguous (shell, system)</pre>
+这里看来debian系统和red hat是有区别的。在Red Hat Linux中，adduser指令则是useradd指令的符号连接，两者实际上是同一个指令。
+
+
+使用useradd命令
+<pre>$sudo useradd -d /home/nologin -s /usr/sbin/nologin hisen_nologin</pre>
+
+创建之后可以查看/etc/passwd文件
+<pre>$more /etc/passwd | grep hisen_nologin</pre>
+<pre>hisen_nologin:x:1004:1005::/home/nologin:/usr/sbin/nologin</pre>
+
+修改hisen_nologin密码
+<pre>$passwd hisen_nologin</pre>
+
+尝试ssh登陆
+<pre>$su hisen_nologin</pre>
+<pre>This account is currently not available</pre>
+表示是属于禁止登录的账号
+
+使用nologin账号hisen_nologin尝试登陆FTP，返回错误
+<pre>响应: 530 Login incorrect.
+错误: 严重错误
+错误: 无法连接到服务器
+</pre>
+
+<p>这个问题在《linux系统管理技术手册》一书中介绍禁止登录这块有简单的描述：“很多提供对系统非登录访问的守护进程（如FTP）会检查用户的登录shell是否列在/etc/shells中，如果没有列出，守护进程就会拒绝访问（这正是您所需要的动作）”。</p>
+
+<p>有了这个提示，我们就编写/etc/shells文件在最后一行加入</p>
+
+<pre>/usr/sbin/nologin</pre>
+
+然后再次测试登录，返回
+<pre>响应: 500 OOPS: cannot change directory:/home/nologin
+错误: 严重错误
+错误: 无法连接到服务器
+</pre>
+
+<p>这个提示是缺少用户的主目录，进入home目录查看确实没有主目录，那就新建一个</p>
+
+<pre>mkdir /home/nologin
+chown hisen_nologin:hisen /home/nologin
+chmod 700 /home/nologin
+</pre>
+
+<p>重新测试成功。</p>
+
+<p>这useradd命令居然不会自动新增账号主目录，查看useradd命令</p>
+
+<pre>$man userdd</pre>
+
+其中-m参数的描述：
+<pre>-m, --create-home
+           Create the user's home directory if it does not exist. The files and directories contained in the skeleton directory (which can be defined with the -k option)
+           will be copied to the home directory.
+           By default, if this option is not specified and CREATE_HOME is not enabled, no home directories are created.
+By default, if this option is not specified and CREATE_HOME is not enabled, no home directories are created
+</pre>
+
+<p>意思是可以如果主目录不存在可以使用-m参数进行创建用户的主目录，默认情况下如果这个命令参数未选择，并且CREATE_HOME未激活，主目录将不会被创建</p>
+
+<p>查看useradd的默认属性</p>
+
+<pre>$useradd -D</pre>
+<pre>GROUP=100
+HOME=/home
+INACTIVE=-1
+EXPIRE=
+SHELL=/bin/sh
+SKEL=/etc/skel
+CREATE_MAIL_SPOOL=no
+</pre>
+
+<p>可以看到CREATE_HOME未激活，这样如果需要自动创建用户的主目录，修改上面的新增用户的命令</p>
+
+<pre>$sudo useradd -m -d /home/nologin -s /usr/sbin/nologin hisen_nologin -g hisen</pre>
+
+<p>补充说明：
+查看ftp用户</p>
+
+<pre>$more /etc/passwd | grep ftp</pre>
+
+<pre>ftp:x:107:111:ftp daemon,,,:/srv/ftp:/bin/false</pre>
+
+<p>/etc/passwd格式，有7个有冒号分隔的字段组成</p>
+
+<ul>
+    <li>登录名</li>
+
+    <li>经过加密的口令或者口令占位符</li>
+
+    <li>UID（用户ID）号</li>
+
+    <li>默认的GID（组ID）号</li>
+
+    <li>“GECOS”信息：全名，办公室电话，分机号，住宅电话</li>
+
+    <li>主目录</li>
+
+    <li>登陆shell</li>
+</ul>
+
+<p>禁止用户登录的办法是加密的口令前面加一个星号或其他字符，更加安全的方式是修改这个登录shell</p>
+
+<p>参考资料  </p>
+<p>《linux系统管理技术手册》  </p>
+<p>http://wiki.ubuntu.org.cn/Vsftpd</p>

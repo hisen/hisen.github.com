@@ -1,0 +1,190 @@
+---
+layout: post
+title: centos安装postfix+dovecot
+category: Linux
+keywords: centos,centos邮件,postfix
+---
+
+<p>基本上每个web项目都会涉及到邮件，最常见的应该算注册，填写注册邮箱发送激活邮件。目前接触到的项目，都使用到了邮件的功能，个人觉得对这块东西不了解，也可以说对自己经手的项目没有充分的了解，特别是在邮件预警这块，做得好与做得差个人能力很容易放大看出（个人观点哈哈）。没权限查看正式环境上的邮件系统，因此在自己在centos下搭建postfix进行模拟操作。</p>
+
+<p>以下是安装步骤：
+首先查看是否已经安装sendmail，如果已经安装的话需要卸载。</p>
+
+<pre>pstree | grep sendmail</pre>
+
+<p>输出：|-2*[sendmail],说明已经存在，需要关闭，如无输出则直接跳到安装postfix这步
+停止sendmail服务</p>
+
+<pre>service sendmail stop</pre>
+
+<p>设置开机默认不启动</p>
+
+<pre>chkconfig sendmail off
+chkconfig --list sendmail</pre>
+
+<p>输出：</p>
+
+<pre>sendmail &nbsp; 0:off&nbsp;&nbsp;&nbsp; 1:off&nbsp;&nbsp;&nbsp; 2:off&nbsp;&nbsp;&nbsp;3:off&nbsp;&nbsp;&nbsp; 4:off&nbsp;&nbsp;&nbsp; 5:off&nbsp;&nbsp;&nbsp; 6:off</pre>
+
+<p>则表示默认不启动</p>
+
+<p><strong>安装postfix</strong></p>
+
+<pre>yum -y install postfix</pre>
+
+<p>输出一大串安装信息</p>
+
+<p>配置postfix，postfix的配置文件是/etc/postfix/main.cf</p>
+
+<pre>myhostname = www.centos.vbird&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;==约在第&nbsp; 77 行
+myorigin = $myhostname&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;==约在第&nbsp; 99 行
+inet_interfaces = all&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;==约在第 114 行，117 行要批注掉
+inet_protocols = ipv4&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;==约在第 120 行
+mydestination = $myhostname, localhost.$mydomain, localhost&lt;==约在第 165,166 行
+mynetworks = 127.0.0.0/8, 192.168.1.0/24 &lt;==约在269行
+relay_domains = $mydestination&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;==约在第 299 行</pre>
+
+<p>上面的mynetworks ，需要查看自己所在局域网的ip，因为我是在虚拟机里面配置的,ip所在号段为192.168.1.102子网掩码为255.255.255.0,所以设置成了192.168.1.0/24</p>
+
+<p>配置后使用postconf查看与默认不同的地方如下：</p>
+
+<pre>[root@localhost ~]# postconf -n
+alias_database = hash:/etc/aliases
+alias_maps = hash:/etc/aliases
+command_directory = /usr/sbin
+config_directory = /etc/postfix
+daemon_directory = /usr/libexec/postfix
+debug_peer_level = 2
+html_directory = no
+inet_interfaces = all
+mail_owner = postfix
+mailq_path = /usr/bin/mailq.postfix
+manpage_directory = /usr/share/man
+mydestination = $myhostname, localhost.$mydomain, localhost,$mydomain
+mydomain = laoniangke.com
+myhostname = mail.laoniangke.com
+mynetworks = 192.168.1.0/24, 127.0.0.0/8
+myorigin = $mydomain
+newaliases_path = /usr/bin/newaliases.postfix
+queue_directory = /var/spool/postfix
+readme_directory = /usr/share/doc/postfix-2.3.3/README_FILES
+relay_domains = $mydestination
+sample_directory = /usr/share/doc/postfix-2.3.3/samples
+sendmail_path = /usr/sbin/sendmail.postfix
+setgid_group = postdrop
+unknown_local_recipient_reject_code = 550</pre>
+
+<p>重启postfix</p>
+
+<pre>service postfix restart</pre>
+
+<p>通过发送邮件的端口，确认postfix服务是否启动</p>
+
+<pre>netstat -tunlp | grep :25</pre>
+
+<p>选择mta服务器的优先级</p>
+
+<pre>alternative --config mta</pre>
+
+<p><a href="{{ site:url }}/uploads/2013/03/postfix_alternatives.png"><img class="alignnone size-full wp-image-704" title="postfix_alternatives" src="{{ site:url }}/uploads/2013/03/postfix_alternatives.png" alt="邮件优先级" width="380" height="164"></a></p>
+
+<p>其中符号“+”代表优先选择，这边只要输入postfix所在的号码即可，如上图则是：2</p>
+
+<p>配置开机启动
+chkconfig postfix on</p>
+
+<p>查看是否配置成功
+chkconfig --list dovecot
+sendmail 0:off&nbsp;&nbsp;1:off&nbsp; 2:on &nbsp;3:on&nbsp;&nbsp;4:on&nbsp;&nbsp;5:on &nbsp;6:off</p>
+
+<p>安装dovecot</p>
+
+<pre>yum -y install dovecot</pre>
+
+<p>配置dovecot。配置dovecot非常的简单，只需要去除dovecot支持的协议前面的#即可
+找到#protocols = imap imaps pop3 pop3s，修改成
+protocols = imap imaps pop3 pop3s</p>
+
+<p>启动dovecot</p>
+
+<pre>service dovecot restart</pre>
+
+<p>通过端口号查看是否已经启动</p>
+
+<pre>netstat -tunlp |grep ：110</pre>
+
+<p>tcp  0  0 :::110  :::*  LISTEN   3091/dovecot
+配置开机启动</p>
+
+<pre>chkconfig dovecot on</pre>
+
+<p>查看是否配置成功</p>
+
+<pre>chkconfig --list dovecot</pre>
+
+<p>sendmail &nbsp; 0:off&nbsp;&nbsp;&nbsp; 1:off&nbsp;&nbsp;&nbsp; 2:on &nbsp; &nbsp;3:on &nbsp; &nbsp;4:on &nbsp; &nbsp;5:on &nbsp; &nbsp;6:off
+<strong>
+到此postfix+dovecot邮件收发服务器就配置好了。</strong></p>
+
+<p><strong>邮件别名</strong>
+发送user1的邮件同时发送给user2
+在/etc/aliases添加一行</p>
+
+<pre>user1:user1,user2</pre>
+
+<p>群发邮件</p>
+
+<pre>usersmail:user1,user2,user3,user4</pre>
+
+<p>发送邮件usersmail时，就会发送user1,user2,user3,user4
+修改之后需要激活邮件别名功能</p>
+
+<pre>newaliases</pre>
+
+<p>或者重启</p>
+
+<pre>service postfix restart</pre>
+
+<p><strong>测试传递</strong></p>
+
+<pre>echo “haha” |mail &nbsp;-s “from root” user1</pre>
+
+<p>From root@laoniangke.com&nbsp; Sun Mar 10 02:44:50 2013
+Return-Path: &lt;root@laoniangke.com&gt;
+X-Original-To: user1
+Delivered-To: user1@laoniangke.com
+Received: by mail.laoniangke.com (Postfix, from userid 0)
+id D8E13158400; Sun, 10 Mar 2013 02:44:50 +0800 (CST) //邮件id
+To: user1@laoniangke.com
+Subject: from root
+Message-Id: &lt;20130309184450.D8E13158400@mail.laoniangke.com&gt;
+Date: Sun, 10 Mar 2013 02:44:50 +0800 (CST)
+From: root@laoniangke.com (root)</p>
+
+<p>haha
+还可以使用telnet localhost 25进行测试
+不设置smtpd<em>authorized</em>xclient_hosts=localhost的话，命令会输出以下内容就没反应了的。</p>
+
+<pre>Trying 127.0.0.1...
+Connected to localhost.localdomain (127.0.0.1).
+Escape character is '^]'.</pre>
+
+<p>这里进行配置,网上查了下遇到问题的人很多，我也是在读《Linux管理员技术手册》才明白
+<span style="color: #ff0000;">postconf -e smtpd<em>authorized</em>xclient_hosts=localhost</span></p>
+
+<p><strong>补充说明</strong>
+postconf命令
+配置postfix的工具，不带参数是打印输出当前配置好的参数
+加上-d参数，是打印默认的参数，而不是当前配置的值
+-n是当前配置的与默认不同德参数
+-e参数是进行设置</p>
+
+<p>postfix check&nbsp;&nbsp; &lt;==检查 postfix 相关的档案、权限等是否正确！
+postfix start&nbsp;&nbsp; &lt;==开始 postfix 的执行
+postfix stop&nbsp;&nbsp;&nbsp; &lt;==关闭 postfix
+postfix flush&nbsp;&nbsp; &lt;==强制将目前正在邮件队列的邮件寄出！
+postfix reload&nbsp; &lt;==重新读入配置文件，也就是 /etc/postfix/main.cf</p>
+
+<p>参考：</p>
+<p>《鸟哥的Linux私房菜》</p>
+<p>《Linux管理员技术手册》</p>

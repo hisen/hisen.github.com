@@ -1,0 +1,112 @@
+---
+layout: post
+title: zendframework Log日志之数据库，firebug类型实例
+category: zendframework
+keywords: zf框架,zf日志
+---
+
+以前的项目中使用到了zend框架全是搭了一个外壳，跑通了流程。里面的的功能基本上全部没有用上，真是罪过罪过。今天尝试了下zend log的功能，也相当的强大。
+其中log的默认等级有以下几种：
+<pre>
+EMERG   = 0;  // Emergency: 系统不可用
+ALERT   = 1;  // Alert: 报警
+CRIT    = 2;  // Critical: 紧要
+ERR     = 3;  // Error: 错误
+WARN    = 4;  // Warning: 警告
+NOTICE  = 5;  // Notice: 通知
+INFO    = 6;  // Informational: 一般信息
+DEBUG   = 7;  // Debug: 小时消息
+</pre> 
+    
+如果需要自定义等级可以使用Log对象的addPriority()方法
+<pre>$logger->addPriority('PHP', 8);</pre>
+
+调用自定义log等级
+<pre>
+$logger->log('PHPmessage', 8);
+$logger->PHP('PHPMessage');
+</pre>
+
+事件的字段类型默认的有以下几个键
+<pre>
+Array
+(
+    [timestamp] => 2013-01-17T12:53:32+01:00 //日志时间
+    [message] => Foo message // 日志内容
+    [priority] => 8 // 日志等级
+    [priorityName] => FOO // 日志的名称
+)
+</pre>
+因此默认的情况的记录的信息也只有这四个数据。但是可以使用setEventItem()方法给日志添加数据。
+
+如以下方法是将日志记录到mysql，新增两个字段数据信息user，datetime
+<pre>
+$params = array ('host'     => '127.0.0.1',
+                 'username' => 'root',
+                 'password' => '',
+                 'dbname'   => 'zf1.0');
+$db = Zend_Db::factory('PDO_MYSQL', $params);
+
+$columnMapping = array(
+                    'lvs' => 'priority',
+                    'msg' => 'message',
+                    'user' => 'user',
+                    'datetime' => 'datetime'
+                );
+$writer = new Zend_Log_Writer_Db($db, 'log_table', $columnMapping);
+
+
+$logger = new Zend_Log($writer);
+
+$logger->setEventItem('user', 'HisenKing');
+$logger->setEventItem('datetime', time());
+
+$logger->addPriority('php', 8);
+$logger->FOO('LAMP');
+</pre>
+
+<strong>将zend Log写入firebug，firephp输出查看</strong>
+这个功能需要安装firephp插件才能查看具体的输出信息。也省去了我们另外加载firephp的安装包
+firebug的日志类型：
+<pre>
+LOG       Displays a plain log message 
+INFO      Displays an info log message 
+WARN      Displays a warning log message 
+ERROR     Displays an error log message that increments 
+          Firebug's error count  
+TRACE     Displays a log message with an expandable stack trace 
+EXCEPTION Displays an error long message with 
+          an expandable stack trace  
+TABLE     Displays a log message with an expandable table 
+</pre>
+
+以下是使用INFO，EXCEPTION，TABLE类型的实例
+<pre>
+$writer = new Zend_Log_Writer_Firebug();
+$logger = new Zend_Log($writer);
+
+// INFO类型
+$arr = array(
+            'my name is hisen!'
+        );
+$logger->log($arr, Zend_Log::INFO);
+
+// table类型
+$writer->setPriorityStyle(16, 'TABLE');
+$logger->addPriority('TABLE', 16);
+$table = array('Summary line for the table',
+             array(
+                 array('Column 1', 'Column 2'),
+                 array('Row 1 c 1',' Row 1 c 2'),
+                 array('Row 2 c 1',' Row 2 c 2')
+             )
+            );
+$logger->table($table);
+
+// 错误报告跟踪类型
+$exception = new Zend_Exception('Test exception');
+$logger->err($exception);
+</pre>
+
+效果图：
+<a href="{{ site:url }}/uploads/2013/01/firephp_log.png"><img src="{{ site:url }}/uploads/2013/01/firephp_log.png" alt="zendlog" title="firephp_log" width="896" height="532" class="alignnone size-full wp-image-663" /></a>

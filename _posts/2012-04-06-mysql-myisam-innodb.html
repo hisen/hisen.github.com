@@ -1,0 +1,69 @@
+---
+layout: post
+title: 记mysql引擎之myisam与innodb的区别
+category: mysql
+keywords: mysql,myisam,innodb
+---
+
+<p>昨天周例会上一同事举了一个crm系统中大数据联表查询时，表被锁住的情况。其中用到的是mysiam，然后说明了一点优化的方法，即拆分sql语句，尽量使查询的时间变短，从而减少锁表的可能。那个crm因为是最老的系统，数据库比较大，用户相对也比较多，一直存在锁表的情况。私下查看过部门数据库建表搜索引擎使用的情况，全部都是mysiam，就提了下运用innodb的建议。一同事提出产用innodb查询会更慢，不知道是从哪看来的。因此有必要整理下myisam与innodb的区别：<br />
+1：mysiam是表锁，innodb是行锁；2：innodb支持事务，mysiam不支持；3：mysiam引擎的数据库将会产生.frm .MYD,MYI三个文件，innodb只用会产生frm文件；4：mysiam只缓存索引不存储数据，innodb会缓存数据以及索引；5：myisam的索引长度不能超过1000，这也是mysiam特有的；6：mysiam支持全文搜索，innodb不支持；7：innodb不保存表的具体行数，mysiam保存，此导致count时的差异<br />
+<span id="more-178"></span><br />
+根据以上区别和各自引擎的特点优化方案分别是：<br />
+mysiam：尽量索引，mysiam只缓存索引不缓存数据；调整读写优先级，根据实际需求，调整读写优先级；延迟插入，使用insert delay，减少和select竞争；数据顺序操作，设置Concurrent_Insert让insert全部到尾部，减少和select竞争；分解大操作，将大操作分解成多步操作，防止长时间锁定；降低并发数，表锁会导致竞争激烈，通过排队机制提高效率；充分利用query_cache，对于静态数据，尽量使用query_cache。<br />
+innodb：主键尽可能小，所有非主键索引都需要存储主键；索引整合，减少冗余索引，降低数据量；避免全表扫描，会导致表锁；尽量自己控制事务，关闭aotucommit；尽量缓存所有数据和索引；合理设置innodb_flush_log_at_trx_commit；充分利用索引避开表锁；避免主键更新。<br />
+还有就是定期整理数据库表，压缩数据，类似计算机的碎片整理。提高相同时间，数据的读取量</p>
+<table width="500" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="3" valign="top" width="500"><strong>InnoDB与Myisam的六大区别</strong></td>
+</tr>
+<tr>
+<td valign="top" width="100"></td>
+<td valign="top" width="250"><strong>MyISAM</strong></td>
+<td valign="top" width="150"><strong>InnoDB</strong></td>
+</tr>
+<tr>
+<td valign="top"><strong>构成上的区别：</strong></td>
+<td valign="top">每个MyISAM在磁盘上存储成三个文件。第一个文件的名字以表的名字开始，扩展名指出文件类型。</p>
+<p>.frm文件存储表定义。</p>
+<p>数据文件的扩展名为.MYD (MYData)。</p>
+<p>索引文件的扩展名是.MYI (MYIndex)。</td>
+<td valign="top">基于磁盘的资源是InnoDB表空间数据文件和它的日志文件，InnoDB 表的大小只受限于操作系统文件的大小，一般为 2GB</td>
+</tr>
+<tr>
+<td valign="top"><strong>事务处理上方面</strong><strong>:</strong></td>
+<td valign="top">MyISAM类型的表强调的是性能，其执行数度比InnoDB类型更快，但是不提供事务支持</td>
+<td valign="top">InnoDB提供事务支持事务，外部键等高级数据库功能</td>
+</tr>
+<tr>
+<td valign="top"><strong>SELECT UPDATE,INSERT</strong><strong>，</strong><strong>Delete</strong><strong>操作</strong><strong> </strong></td>
+<td valign="top">如果执行大量的SELECT，MyISAM是更好的选择</td>
+<td valign="top"><strong>1.</strong>如果你的数据执行大量的<strong>INSERT</strong><strong>或</strong><strong>UPDATE</strong>，出于性能方面的考虑，应该使用InnoDB表</p>
+<p><strong>2.DELETE FROM table</strong>时，InnoDB不会重新建立表，而是一行一行的删除。</p>
+<p><strong>3.LOAD TABLE FROM MASTER</strong>操作对InnoDB是不起作用的，解决方法是首先把InnoDB表改成MyISAM表，导入数据后再改成InnoDB表，但是对于使用的额外的InnoDB特性（例如外键）的表不适用</td>
+</tr>
+<tr>
+<td valign="top"><strong>对</strong><strong>AUTO_INCREMENT</strong><strong>的操作</strong></td>
+<td valign="top">每表一个AUTO_INCREMEN列的内部处理。</p>
+<p><strong>MyISAM</strong><strong>为</strong><strong>INSERT</strong><strong>和</strong><strong>UPDATE</strong><strong>操作自动更新这一列</strong>。这使得AUTO_INCREMENT列更快（至少10%）。在序列顶的值被删除之后就不能再利用。(当AUTO_INCREMENT列被定义为多列索引的最后一列，可以出现重使用从序列顶部删除的值的情况）。</p>
+<p>AUTO_INCREMENT值可用ALTER TABLE或myisamch来重置</p>
+<p>对于AUTO_INCREMENT类型的字段，InnoDB中必须包含只有该字段的索引，但是在MyISAM表中，可以和其他字段一起建立联合索引</p>
+<p>更好和更快的auto_increment处理</td>
+<td valign="top">如果你为一个表指定AUTO_INCREMENT列，在数据词典里的InnoDB表句柄包含一个名为自动增长计数器的计数器，它被用在为该列赋新值。</p>
+<p>自动增长计数器仅被存储在主内存中，而不是存在磁盘上</p>
+<p>关于该计算器的算法实现，请参考</p>
+<p><strong>AUTO_INCREMENT</strong><strong>列在</strong><strong>InnoDB</strong><strong>里如何工作</strong></td>
+</tr>
+<tr>
+<td valign="top"><strong>表的具体行数</strong><strong> </strong></td>
+<td valign="top">select count(*) from table,MyISAM只要简单的读出保存好的行数，注意的是，当count(*)语句包含 where条件时，两种表的操作是一样的</td>
+<td valign="top">InnoDB 中不保存表的具体行数，也就是说，执行select count(*) from table时，InnoDB要扫描一遍整个表来计算有多少行</td>
+</tr>
+<tr>
+<td valign="top"><strong>锁</strong><strong> </strong></td>
+<td valign="top">表锁</td>
+<td valign="top">提供行锁(locking on row level)，提供与 Oracle 类型一致的不加锁读取(non-locking read in</p>
+<p>SELECTs)，另外，InnoDB表的行锁也不是绝对的，如果在执行一个SQL语句时MySQL不能确定要扫描的范围，InnoDB表同样会锁全表，例如update table set num=1 where name like “%aaa%”</td>
+</tr>
+</tbody>
+</table>

@@ -1,0 +1,110 @@
+---
+layout: post
+title: php运算符优先级示例
+category: php
+keywords: php运算符优先级面试题
+---
+
+网上看到部分关于php运算的题目，很容易使人想当然，部分也不完全遵循php的优先级。
+题目如下:
+1.
+<pre>
+&lt;?php
+  $a = 22;
+  $b = 33;
+  if( $a = 5 || $b = 7 )
+  {
+     $a++;
+     $b++;
+  }
+?&gt;
+</pre>
+以上$a,和$b分别等于多少
+
+2.
+<pre>
+&lt;?php
+   $arr = array(1=&gt;'php', 3=&gt;'mysql');
+   $i = 2;
+   $out = 'hisen'.isset($arr[$i]) ? $arr[$i] : $i;
+?&gt;
+</pre>
+以上输出什么？
+
+3.
+<pre>
+&lt;?php
+  $a = 2;
+  echo $a == 2 ? 'hisen' : $x == 1 ? 'mysql' : 'php';
+?&gt;
+</pre>
+以上输出什么？
+
+4.
+<pre>
+&lt;?php
+$address = $where or $address = 'hangzhou';
+?&gt;
+</pre>
+
+然后在看下php手册上运算符优先级的描述：
+
+<strong>运算符优先级</strong>
+<table>
+<tr><td>结合方向</td><td>运算符</td><td>附加信息</td></tr>
+<tr><td>非结合</td><td>	clone new</td><td>clone 和 new</td></tr>
+<tr><td>左</td><td>	[</td><td>	array()</td></tr>
+<tr><td>非结合</td><td>	++ --</td><td>	递增／递减运算符</td></tr>
+<tr><td>非结合</td><td>	~ - (int) (float) (string) (array) (object) (bool) @</td><td>类型</td></tr>
+<tr><td>非结合</td><td>	instanceof	</td><td>类型</td></tr>
+<tr><td>右结合</td><td>	!	</td><td>逻辑操作符</td></tr>
+<tr><td>左</td><td>	* / %	</td><td>算术运算符</td></tr>
+<tr><td>左</td><td>	+ - .	</td><td>算术运算符 和 字符串运算符</td></tr>
+<tr><td>左</td><td>	<< >>	</td><td>位运算符</td></tr>
+<tr><td>非结合</td><td>	< <= > >= <>	</td><td>比较运算符</td></tr>
+<tr><td>非结合</td><td>	== != === !==	</td><td>比较运算符</td></tr>
+<tr><td>左</td><td>	&	</td><td>位运算符 和 引用</td></tr>
+<tr><td>左</td><td>	^	</td><td>位运算符</td></tr>
+<tr><td>左</td><td>	|	</td><td>位运算符</td></tr>
+<tr><td>左</td><td>	&&	</td><td>逻辑运算符</td></tr>
+<tr><td>左</td><td>	||	</td><td>逻辑运算符</td></tr>
+<tr><td>左</td><td>	? :	</td><td>三元运算符</td></tr>
+<tr><td>右</td><td>	 = += -= *= /= .= %= &= |= ^= <<= >>=	</td><td>赋值运算符</td></tr>
+<tr><td>左</td><td>	and	</td><td>逻辑运算符</td></tr>
+<tr><td>左</td><td>	xor	</td><td>逻辑运算符</td></tr>
+<tr><td>左</td><td>	or	</td><td>逻辑运算符</td></tr>
+<tr><td>左</td><td>	,	</td><td>多处用到</td></tr>
+</table>
+
+不难发现其中的第一到题目没有遵循优先级的定义
+其中的结果等同于
+<pre>
+&lt;?php
+  $a = 22;
+  $b = 33;
+  if( $a = (5 || $b = 7) )
+  {
+     $a++;
+     $b++;
+  }
+?&gt;
+</pre>
+因此$a为true；$b等于34。可能会问为什么$a不是2呢，不是已经递增了么？
+因为“ 递增／递减运算符不影响布尔值。递减 NULL 值也没有效果，但是递增 NULL 的结果是 1。 ”
+
+第二题由于字符串运算"."优先级高于三元运算符。因此echo中等同于
+<pre>$out = ('hisen'.isset($arr[$i])) ? $arr[$i] : $i;</pre>
+'hisen'.isset($arr[$i]永远为true，结果输出"Notice: Undefined offset"
+
+第三题等同于
+<pre>
+&lt;?php
+  $a = 2;
+  echo ($a == 2 ? 'hisen' : $x == 1) ? 'mysql' : 'php'; // mysql
+?&gt;
+</pre>
+
+第四题为php经典示例的代码类似:
+<pre>$connect = mysql_connect(*) or die (mysql_error);</pre>
+代码等同于
+<pre>$address = empty($where) ? 'hangzhou' ; $where;</pre>

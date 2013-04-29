@@ -1,0 +1,95 @@
+---
+layout: post
+title: PHP浮点型的理解
+category: php
+keywords: php,php浮点型
+---
+
+<p>计算机程序处理浮点数的时候遵循的标准是IEEE Std 754-1985。这个标准定义了两种基本的格式：以4个字节表示的单精度格式和以8个字节表示的双精度格式。
+单精度格式4个字节有三部分组成：1位的符号位（0代表正式，1代表负数），8位用做指数，最后23位用做有效数。
+其中二进制的科学计算法中，规范化式的有效数应该大于或等于1且不小于10（十进制的2）。如：101.1101=&gt;1.011101<em>2^2
+在IEEE浮点数标准中，小数点左边的这一位（有且仅有一个1）没有分配存储空间。因此称其精度为24位。
+单精度浮点格式下可以表示的最小二进制数为1.00000000000000000000000</em>2^-126，最大为1.11111111111111111111111*2^127，小数点右边23位。
+单精度浮点数有效位为23，精度为1-23^24,1-16777216，所以16777216和16777217两个数之间的所有的数都将被表示成同一个数。</p>
+
+<p>双精度浮点数使用8个字节来不表示：1位的符号位（0代表正式，1代表负数），11位用做指数，最后52位用做有效数。因此在精度上比4字节的单精度浮点有所提升。</p>
+
+<p>以上大致可以如下图表示：
+<a href="{{ site:url }}/uploads/2011/09/IEEE.png"><img src="{{ site:url }}/uploads/2011/09/IEEE.png" alt="单双精度浮点" title="单双精度浮点" width="395" height="499" class="alignnone size-full wp-image-597"></a></p>
+
+<pre>  <code>
+&lt;?php
+$a&nbsp;&nbsp; =&nbsp;&nbsp; 15521.42;
+$b&nbsp;&nbsp; =&nbsp;&nbsp; 15480.3;
+$c = $a-$b;
+var_dump($c);&nbsp;&nbsp;&nbsp; //php4:float(41.120000000001)&nbsp;&nbsp; php5:float(41.12)
+var_dump($c == 41.12);&nbsp;&nbsp;&nbsp;&nbsp; //bool(false)
+
+var_dump(floor((0.1+0.7)*10));&nbsp;//7
+
+var_dump(array_sum(array(81.31,6.23,6.23,6.23))&gt;100) //true
+//可以用printf进行格式化出去查看具体的数字，如：printf("%.20f",array_sum(array(81.31,6.23,6.23,6.23)))；
+
+$a = 0.1;
+for($i=1;$i&lt;10;$i++)
+{
+      $a += 0.1;
+      printf('%.20f',$a);echo "&lt;br&gt;";
+}
+</code>
+</pre>
+
+<p>php手册的说明：</p>
+
+<p>显然简单的十进制分数如同&nbsp;<em>0.1</em> 或&nbsp;<em>0.7</em> 不能在不丢失一点点精度的情况下转换为内部二进制的格式。这就会造成混乱的结果：例如，<em>floor((0.1+0.7)*10)</em> 通常会返回<em>7</em> 而不是预期中的&nbsp;<em>8</em>，因为该结果内部的表示其实是类似&nbsp;<em>7.9</em>。</p>
+
+<p>这和一个事实有关，那就是不可能精确的用有限位数表达某些十进制分数。例如，十进制的&nbsp;<em>1/3</em> 变成了&nbsp;<em>0.3</em>。</p>
+
+<p>所以永远不要相信浮点数结果精确到了最后一位，也永远不要比较两个浮点数是否相等。</p>
+
+<p>比较解决方法：</p>
+
+<pre>  <code>
+&lt;?php
+function floatcmp($f1,$f2,$precision = 10) // are 2 floats equal
+ {
+     $e = pow(10,$precision);
+     $i1 = intval($f1 * $e);
+     $i2 = intval($f2 * $e);
+     return ($i1 == $i2);
+ }
+
+function floatgtr($big,$small,$precision = 10) // is one float bigger than another
+ {
+     $e = pow(10,$precision);
+     $ibig = intval($big * $e);
+     $ismall = intval($small * $e);
+     return ($ibig &gt; $ismall);
+ }
+
+function floatgtre($big,$small,$precision = 10) // is on float bigger or equal to another
+ {
+     $e = pow(10,$precision);
+     $ibig = intval($big * $e);
+     $ismall = intval($small * $e);
+     return ($ibig &gt;= $ismall);
+ }
+</code>
+</pre>
+
+<p>以下记录至《代码大全》中使用浮点数时应该遵循的知道原则：</p>
+
+<ul>
+<li>避免数量级相差巨大的数之间的加减运算；</li>
+<li>避免等量判断；</li>
+<li>处理舍入误差问题
+1）换用一种精度更高的变量类型，如单精度浮点值换成双精度浮点值；
+2）换用二进制编码的十进制变量；
+3）把浮点变量变成整数型变量，如美元和美分的处理方式，将美分乘以100，使其保存到变量值中的0到99的范围内；</li>
+<li>检查语言和函数库对特定数据类型的支持；</li>
+</ul>
+
+<p>参考资料：</p>
+<p>http://zh.wikipedia.org/wiki/IEEE_754  </p>
+<p>《编码——隐匿在计算机软硬件背后的语言》  </p>
+<p>《代码大全》  </p>
