@@ -11,8 +11,7 @@ a:hover{color:#2c63bd; text-decoration:underline;}
 a.weibo{float:right; width:65px; height:32px; display:block; vertical-align:middle; padding-left:10px;}
 a.weibo img{margin:9px 0; vertical-align:middle;}
 a.weibo:hover{ text-decoration:none; color:#333333; background:#e3e3e3;}
-a.about{width:71px; height:33px; background:url(../images/about.gif) no-repeat; display:block;}
-a.about:hover{background:url(../images/about_h.gif) no-repeat; color:#333333; text-decoration:none;}
+.about{width:62px; height:33px; background:url(../images/about.gif) no-repeat right; display:block; padding-right:5px;}
 .menu p{float:left}
 
 #main{width:1000px; margin:0 auto; clear:both; padding:30px 0; overflow:auto;}
