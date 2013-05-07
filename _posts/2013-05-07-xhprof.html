@@ -1,0 +1,64 @@
+---
+layout: post
+title: php性能分析工具xhprof安装
+category: php
+keywords: php,xhprof,graphviz
+---
+
+<p>web项目中程序的性能关于用户的体验，特别是对于面向外部用户的产品。项目小的时候可能性能问题也不容易出现，即使出现也比较容易查找。单项目不断扩大，性能的问题也随之也增多，查找也相对的复杂起来。php性能分析工具熟悉的有xdebug，今天尝试安装使用另一款更加强大的性能分析工具xhprof，这个工具是Facebook开发的，结合graphviz更加的完美。对于性能的展示更加的直观。
+以下是ubuntu下的安装过程</p>
+
+<p><strong>安装xhprof</strong></p>
+
+<pre>wget http://pecl.php.net/get/xhprof-0.9.2.tgz
+tar zxf xhprof-0.9.2.tgz
+cd xhprof-0.9.2
+mkdir /var/www/xhprof/
+cp -r xhprof_html xhprof_lib /var/www/xhprof/
+cd extension/
+phpize
+./configure -with-php-config=/usr/bin/php-config
+sudo make
+sudo make install
+</pre>
+
+<p>运行上面的代码如果phpize不存在则进行安装  </p>
+
+<pre>apt-get install php5-dev</pre> 
+安装之后再运行phpize
+
+
+修改php.ini
+<pre>[xhprof]
+extension=xhprof.so
+xhprof.output_dir=/var/log/xhprof/
+</pre> 
+
+<p>重启apache，查看phpinfo看到xhprof扩展表示安装成功</p>
+
+<p><strong>安装graphviz</strong>，一个画图工具，图形化展示程序原型的流程以及耗时情况</p>
+
+<pre>
+wget http://www.graphviz.org/pub/graphviz/stable/SOURCES/graphviz-2.24.0.tar.gz
+tar zxf graphviz-2.24.0.tar.gz
+cd graphviz-2.24.0
+./configure
+make && make install
+</pre>
+
+<p>运行程序生成图片的时候报错
+    Error: either we can not find profile data for run_id 518784aa7e7c4 or the threshold 0.01 is too small or you do not have 'dot' image generation utility installed.</p>
+
+<p>这是因为graphviz生成的图片是png格式，系统(graphviz-2.24.0)不支持,绘图的dot拓展没装成功。这边直接方式源码编译直接使用apt-get安装。
+将上面的安装删除  </p>
+
+<pre>sudo make uninstall graphviz</pre>
+
+<p>再<pre>sudo apt-get install graphviz</pre>
+当然你也可以安装libpng之后重新编译graphviz，具体可以查看
+http://www.cnxct.com/you-do-not-have-dot-image-generation-utility-installed/</p>
+
+<p><strong>参考资料：</strong> <br />
+http://www.162cm.com/p/xhprofdoc.html</p>
+
+
