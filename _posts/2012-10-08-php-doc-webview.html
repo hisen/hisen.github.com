@@ -17,7 +17,7 @@ keywords: doc文档在线预览
 <p>这里提示缺少java软件包，并会提示几个安装包供。选择我安装openjdk-6-jre-headless，命令如下：</p>
 <pre class="brush: php; title: ; notranslate" title="">sudo apt_get openjdk-6-jre-headless</pre>
 <p>安装之后再运行上面doc转pdf的命名，会提示openoffice进程未启动，<br />
-<a href="{{ site:url }}/uploads/2012/10/openoffice1.png"><img class="alignnone size-large wp-image-547" title="openoffice" src="{{ site:url }}/uploads/2012/10/openoffice1-1024x144.png" alt="" width="1024" height="144" /></a><br />
+<a href="{{ site:url }}/uploads/2012/10/openoffice1.png"><img class="alignnone size-large wp-image-547" title="openoffice" src="{{ site:url }}/uploads/2012/10/openoffice1-1024x144.png" alt="" width="600" height="144" /></a><br />
 因为JODConverter是通过OpenOffice來做转换的 ，所以使用前需要先安裝OpenOffice, 並且將OpenOffice的Service启动, 才可以使用. 启动命令</p>
 <pre class="brush: php; title: ; notranslate" title="">/usr/lib/soffice -headless -accept=&amp;quot;socket,host=127.0.0.1,port=8100;urp;&amp;quot; -nofirststartwizard &amp;amp;</pre>
 <p>到此运行上面的doc转pdf的命令已经可以成功。<br />
