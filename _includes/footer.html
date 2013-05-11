@@ -4,6 +4,16 @@
             Theme by xiaochencai. Valid XHTML 1.1 and CSS 3.
         </div>
     </div>
+	
+<script src="{{ site.url }}/js/prettify.js"></script>
+<script>
+  var pres = document.getElementsByTagName("pre");
+  for (var i=0; i < pres.length; ++i) {
+    pres[i].className = "prettyprint linenums";
+  }
+  prettyPrint();
+</script>
+
 <script type="text/javascript">
 var _bdhmProtocol = (("https:" == document.location.protocol) ? " https://" : " http://");
 document.write(unescape("%3Cscript src='" + _bdhmProtocol + "hm.baidu.com/h.js%3F6cad828b6cb3bb1d52771e1267443f0b' type='text/javascript'%3E%3C/script%3E"));
