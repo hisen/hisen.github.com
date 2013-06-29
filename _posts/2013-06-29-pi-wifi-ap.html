@@ -1,0 +1,274 @@
+
+---
+layout: post
+title: 树莓派配置无线连接，以及无线AP热点
+category: Raspberry Pi
+keywords: 树莓派,树莓派wifi,树莓派无线,树莓派AP
+---
+
+<p>之前使用过将笔记本电脑的无线网卡设置成ap，给家里的iPhone，ipad和安卓手机提供wifi链接。但是每次必须得开着笔记本，这个极不方便又不节能，所以买了个迷你的无线路由器。最近在网上看到树莓派改造成无线ap的文章自己也尝试了下，效果还不错。之前的迷你路由器信号不是很强，这样就可以放置在不同的房间提供wifi了。</p>
+
+<p>需要的硬件：树莓派一个，路由器一个，SD卡，无线网卡 <br />
+SD卡烧的系统是wheezy-raspbian，无线网卡的型号是“B-LINK BL-LW06-AR1” RTL8192CU芯片  </p>
+
+<p>系统初始化安装的过程，网上很多这边就不描述了。先讲讲如何使用无线网卡连接无线网络，测试网卡是否正常工作。 
+查看usb设配，看列表中是否有无线网卡  </p>
+
+<pre>sudo lsusb </pre>
+返回   
+<pre>
+Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub  
+Bus 001 Device 002: ID 0424:9512 Standard Microsystems Corp.  
+Bus 001 Device 003: ID 0424:ec00 Standard Microsystems Corp.  
+Bus 001 Device 004: ID 0bda:8178 Realtek Semiconductor Corp. RTL8192CU 802.11n WLAN Adapter  
+</pre>
+
+<p>其中Bus 001 Device 004: ID 0bda:8178 Realtek Semiconductor Corp. RTL8192CU 802.11n WLAN  Adapter代表的就是无线网卡被系统识别，芯片是RTL8192CU  </p>
+
+<pre>
+sudo cp /etc/network/interfaces /etc/network/interfaces.bak  
+sudo vim /etc/network/interfaces  
+</pre>
+
+<p>内容替换为：  </p>
+
+<pre>
+auto lo  //表示使用localhost  
+iface eth0 inet dhcp  //表示如果有接口ech0, 则用dhcp获得IP地址   
+auto wlan0   //表示如果有wlan设备，使用wlan0设备名  
+allow-hotplug wlan0 //表示wlan设备可以热插拨  
+iface wlan0 inet dhcp //表示如果有WLAN网卡wlan0 (就是WIFI网卡), 则用dhcp获得IP地址  
+wpa-ssid "hisen"  //hisen是WIFI网SSID名称，如果是别的，请更改  
+wpa-psk "Raspberry" //表示连接WIFI网络时，使用wpa-psk认证方式，认证密码是Raspberry。
+</pre>
+
+<p>如果有以太网网线连接，则优先采取DHCP自动连接。如果有名为hisen的WIFI网络，则采取DHCP自动连接。 </p>
+
+<p>此时查看ifconfig，其中wlan0的inet addr还是没有IP地址的。拔掉以太网网线  </p>
+
+<pre>sudo /etc/init.d/networking restart</pre>
+再次查看ifconfig，就会显示出ip地址了，表示链接成功。 <br />  
+到此无线的配置使用结束<br />
+<br />
+<br />
+
+接下来讲如何将树莓派配置成WIFI AP(access point)
+<br />
+<strong>1.安装软件</strong>  
+<br />
+hostapd is a user space daemon for wireless access point and authentication servers<br />
+All IP devices need addresses, and ISC DHCP is the easiest and most efficient way to provide them <br />
+<pre>sudo apt-get install hostapd isc-dhcp-server</pre>
+这里可能出现错误提示，需要进行sudo apt-get update操作，再执行上面的命令
+<br />
+<strong>2.配置DHCP服务</strong>  
+<pre>sudo vim /etc/dhcp/dhcpd.conf</pre>  
+注释掉域名，以及域名服务器。找到   
+<pre>
+option domain-name "example.org";   
+option domain-name-servers ns1.example.org, ns2.example.org;
+</pre>
+
+<p>前面加上#，修改成   </p>
+
+<pre>
+#option domain-name "example.org";   
+#option domain-name-servers ns1.example.org, ns2.example.org;
+</pre>
+
+<p>找到   </p>
+
+<pre>
+#If this DHCP server is the official DHCP server for the local   
+#network, the authoritative directive should be uncommented.   
+#authoritative;   
+</pre>
+
+<p>去掉authoritative前面的#，修改成   </p>
+
+<pre>
+#If this DHCP server is the official DHCP server for the local   
+#network, the authoritative directive should be uncommented.   
+authoritative;   
+</pre>
+
+<p>并在文件底部加上以下代码，并保持退出 </p>
+
+<pre>
+subnet 192.168.42.0 netmask 255.255.255.0 { 
+range 192.168.42.10 192.168.42.50; 
+option broadcast-address 192.168.42.255; 
+option routers 192.168.42.1; 
+default-lease-time 600; 
+max-lease-time 7200; 
+option domain-name "local"; 
+option domain-name-servers 8.8.8.8, 8.8.4.4; 
+} 
+</pre>
+
+<p>配置说明： <br />
+authoritative：如果这台 DHCP 服务器是网络中的「官方」服务器，则加这一行。 <br />
+option domain-name：用来设定网络域名。 <br />
+option domain-name-servers：设定DNS服务器IP。 <br />
+option subnet-mask：设定要给客户端的预设自网络掩码。 <br />
+option broadcast-address：设定要给客户端的预设广播地址。 <br />
+option time-offset：设定本地时间和格林威治时间差几秒 <br />
+default-lease-time：设定预设的租期。租期以秒计算，租约到期后，服务器会回收改 IP。 <br />
+max-lease-time：当租约到期后，客戶端可以继续要求使用同一个 IP，这个选项控制该 IP 最长可以被使用多久。 <br />
+ddns-update-style：这是用来设定是否支持 ddns 更新 IP，这个选项一定要存在才不会有错误。   </p>
+
+<pre>sudo vim /etc/default/isc-dhcp-server</pre> 
+修改那个接口提供DHCP服务，多个接口使用空格隔开，如“eth0 eth1”。找到 
+INTERFACES=""修改成  
+<pre>INTERFACES="wlan0"</pre> 
+<br />
+<strong>3.配置无线网卡为静态ip</strong><br />
+如果无线网卡在工作，先停掉运行  
+<pre>sudo ifdown wlan0</pre> 
+
+修改interface文件 
+<pre>sudo vim /etc/network/interfaces </pre>
+内容为
+<pre>
+auto lo 
+iface lo inet loopback 
+iface eth0 inet dhcp 
+allow-hotplug wlan0 
+iface wlan0 inet static 
+address 192.168.42.1 
+netmask 255.255.255.0  
+</pre>
+
+<p>说明192.168.42.1是给raspberry pi 做的路由器分配的网关 ip 
+这个不能跟局域网里其他路由网关ip重复 </p>
+
+<p>分配一个静态ip </p>
+
+<pre>sudo ifconfig wlan0 192.168.42.1 </pre>
+<br />
+<strong>4.配置Access Point</strong> <br />
+这里需要配置一个需要密码认证的网络  
+<pre>sudo vim /etc/hostapd/hostapd.conf </pre>
+内容修改为：
+<pre>
+interface=wlan0 
+driver=rtl871xdrv 
+ssid=hisen 
+hw_mode=g 
+channel=6 
+macaddr_acl=0 
+auth_algs=1 
+ignore_broadcast_ssid=0 
+
+wpa=2 
+wpa_passphrase=raspberry 
+wpa_key_mgmt=WPA-PSK 
+wpa_pairwise=TKIP 
+rsn_pairwise=CCMP 
+</pre>
+
+<p>配置说明： <br />
+interface: 那个接口作为接入点 <br />
+driver: 使用无线驱动，树莓派是rtl871xdrv，注意是187L(小写的L) <br />
+ssid: 共享网络的SSID <br />
+hw<em>mode: 指定802.11协议,包括 a = IEEE 802.11a, b = IEEE 802.11b, g = IEEE 802.11g <br />
+channel: 指定无线信道 <br />
+macaddr</em>acl: 指定MAC地址过滤规则，0表示除非在禁止列表否则允许，1表示除非在允许列表否则禁止，2表示使用外部RADIUS服务器； <br />
+accept<em>mac</em>file：指定允许MAC列表文件所在； <br />
+deny<em>mac</em>file：指定禁止MAC列表文件所在； <br />
+auth<em>algs: 指定采用哪种认证算法 1表示开放系统认证（Open System Authentication, OSA），2表示共享密钥认证（Shared Key Authentication, SKA，3则两种认证方式都支持 <br />
+ignore</em>broadcast<em>ssid: 是否禁止广播SSID <br />
+wpa=2: 使用WPA2加密方式，WEP非常容易被破解不推介使用 <br />
+wpa</em>passphrase：WPA/WPA2加密需要指定密钥，这个选项就是配置WPA/WPA2的密钥。注意wpa<em>passphrase要求8~63个字符。另外还可以通过配置wpa</em>psk来制定密钥，不过要设置一个256位的16进制密钥 <br />
+wpa<em>key</em>mgmt: 设置客户端密钥算法验证方式。认证方式为WPA-PSK 加密方式为CCMP <br />
+wpa<em>pairwise/rsn</em>pairwise: 如果启用了WPA，需要指定wpa<em>pairwise；如果启用了WPA2，需要指定rsn</em>pairwise，或者采用wpa_pairwise的设定   </p>
+
+<p>保存退出 </p>
+
+<pre>sudo vim /etc/default/hostapd </pre>
+找到#DAEMON_CONF=""修改成
+<pre>DAEMON_CONF="/etc/hostapd/hostapd.conf" </pre>
+保存退出 
+
+开机启动设置ip转发 
+<pre>sudo vim /etc/sysctl.conf </pre>
+底部加上一行
+<pre>
+net.ipv4.ip_forward=1
+sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward" 
+</pre> 
+
+sysctl命令说明:  <br/>
+系统引导时sysctl命令会读取sysctl.conf配置文件，所以如何需要永久改变某参数的值可在此文件下添加，格式为variable=value，  
+变量名是相对于/proc/sys的路径名，使用圆点（.）来代替斜线（/）。   
+因此配置等同于下面的命令   
+
+<pre>sudo sh -c "echo 1 > /proc/sys/net/ipv4/ip_forward" </pre>
+
+在以太网端与无线网端建立转发 
+<pre>
+sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE 
+sudo iptables -A FORWARD -i eth0 -o wlan0 -m state --state RELATED,ESTABLISHED -j ACCEPT 
+sudo iptables -A FORWARD -i wlan0 -o eth0 -j ACCEPT 
+</pre>
+
+<p>查看iptables是否正确 </p>
+
+<pre>
+sudo iptables -t nat -S 
+sudo iptables -S 
+</pre>
+
+<p>确保开机自动生效 
+保存iptables规则 </p>
+
+<pre>
+sudo sh -c "iptables-save > /etc/iptables.ipv4.nat" 
+sudo vim /etc/network/interfaces 
+</pre>
+
+<p>在底部新增一行</p>
+
+<pre>up iptables-restore < /etc/iptables.ipv4.nat </pre>
+
+更新hostapd，确保支持无线网卡 
+<pre>
+wget http://www.adafruit.com/downloads/adafruit_hostapd.zip 
+unzip adafruit_hostapd.zip 
+sudo mv /usr/sbin/hostapd /usr/sbin/hostapd.ORIG 
+sudo mv hostapd /usr/sbin 
+sudo chmod 755 /usr/sbin/hostapd 
+</pre>
+<br/>
+<strong>5.测试</strong><br />
+<pre>sudo /usr/sbin/hostapd /etc/hostapd/hostapd.conf</pre>
+成功的话，打开手机会发现多了一个hisen的无线，但是目前还无法链接成功的。 
+
+<br/>
+<strong>6.收尾</strong><br/>
+启动服务  
+<pre>
+sudo service hostapd start 
+sudo service isc-dhcp-server start 
+</pre>
+
+<p>检查ap和dhcp状态，返回successfully表示启动成功 </p>
+
+<pre>
+sudo service hostapd status 
+sudo service isc-dhcp-server status 
+</pre>
+
+<p>设置开机自动启动 </p>
+
+<pre>
+sudo update-rc.d hostapd enable 
+sudo update-rc.d isc-dhcp-server enable 
+</pre>
+
+<p><strong>参考资料：</strong> <br />
+《linux系统管理技术手册》 <br />
+http://en.wikipedia.org/wiki/Hostapd <br />
+http://www.isc.org/downloads/dhcp/ <br />
+http://www.twbsd.org/cht/book/ch18.htm  <br />
+http://learn.adafruit.com/setting-up-a-raspberry-pi-as-a-wifi-access-point </p>
