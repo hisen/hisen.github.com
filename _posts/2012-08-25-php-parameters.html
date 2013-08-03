@@ -1,8 +1,8 @@
 ---
 layout: post
-title: 向php传入参数的两种方法
+title: 向php传入参数的三种方法
 category: php
-keywords: 向php传入参数的两种方法
+keywords: 向php传入参数的三种方法
 ---
 
 <p>项目中时常会使用php编写脚本，进行一些统计与批量更新的需求需要进行操作<br />
@@ -14,7 +14,7 @@ keywords: 向php传入参数的两种方法
      $value_n = $opt['n'];
 </pre>
 <p>命令行下运行的方式是php test.php -m hisen -n king</p>
-<p>另一种方式是$argc方式获取，写法如下：</p>
+<p>一种方式是$argc方式获取，写法如下：</p>
 <pre>
 &lt;?php
 if ($argc &gt; 1){
@@ -24,3 +24,5 @@ if ($argc &gt; 1){
 <p>命令行下运行的方式是php test.php hisen king<br />
 其中的$argc返回的是array类型，默认的array[0]为文件名，后面的是传入的参数array[1] hisen array[2] king<br />
 手册中说这个变量仅在register_argc_argv打开时可用。但是在window7与ubuntu下测试，打开与关闭的效果是一样的。</p>
+<br />
+<p>第三种方式是用$_SERVER方式获取:name=value php script.php</p>
