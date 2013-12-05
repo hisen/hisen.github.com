@@ -1,0 +1,118 @@
+---
+layout: post
+title: 树莓派+github+GAE容灾
+category: Raspberry Pi
+keywords: 树莓派,树莓派动态域名解析，容灾
+---
+<p>距上一篇文章都差不多半年时间了，其中主要工作与生活多有了大的变化。工作是进行了内部的转岗有得也有失吧，这其中得到的多或失去的多全靠自己内心如何去衡量了。生活中主要是置业了，在此也十分感谢家人的支持。好了感触就写到这吧！以下就是技术文章了。<p>
+
+<p>之前文章也写了自己在树莓派上搭建了lnmp环境，跑着自己的blog。但是家里的环境不比公司的生成环境，这个断电断网以及一些其他的因素都可能导致树莓派不能正常的对外工作。这样就需要智能的切换DNS解析，当树莓派不能正常工作的时候，用户自动访问github环境上去。这里使用到的dns解析服务是DNSPod，以及GAE的cron。</p>
+
+<strong>以下是两条CNAME记录，以及pi的A记录</strong>
+<pre>
+     主机记录     记录类型     线路类型     记录值                     MX优先级     TTL
+1    www           CNAME        默认           pi.laoniangke.com.     -                 600
+2    www           CNAME        国外           hisen.github.com.      -                 600
+
+3    pi            A            默认          xxx.xxx.xxx.xxx          -                600
+</pre>
+
+<p>也就是当树莓派不能正常访问的时间，将第1条记录的"记录值"修改成"hisen.github.com."。当树莓派恢复访问的时候,重新修改成“pi.laoniangke.com.”。</p>
+
+<strong>GAE的代码如下app.yaml</strong>
+<pre>
+application: laoniangke
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: no
+
+handlers:
+- url: /cron
+  script: dnspod_pi.py
+  
+- url: /*
+  script: helloworld.py
+</pre>
+
+<br />
+<br />
+<strong>cron.yaml代码如下</strong>
+<pre>
+cron:
+- description: check pi if it's still alive
+  url: /cron
+  schedule: every 15 minutes
+</pre>
+
+<br />
+<br />
+<strong>dnspod_pi.py代码如下</strong>
+<pre>
+from google.appengine.api import memcache
+import httplib, urllib
+import time
+import json
+
+params = dict(
+    login_email="hisen@xxx.com", # replace with your email
+    login_password="password", # replace with your password
+    format="json",
+    domain_id="xxx", # replace with your domain_od, can get it by API Domain.List
+    record_id="xxx", # replace with your record_id, can get it by API Record.List
+    sub_domain="www", # replace with your sub_domain
+    record_type="CNAME",
+    record_line="默认",
+    ttl="600"
+)
+
+# 修改CNAME
+def ddns(cname):
+    params.update(dict(value=cname))
+    headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/json"}
+    conn = httplib.HTTPSConnection("dnsapi.cn")
+    conn.request("POST", "/Record.Modify", urllib.urlencode(params), headers)
+ 
+    response = conn.getresponse()
+    data = response.read()
+    conn.close()
+    return response.status == 200
+
+# 获取pi的状态
+def getPiStatus():
+    headers = {"Content-type": "application/x-www-form-urlencoded", "Accept": "text/json"}
+    conn = httplib.HTTPSConnection("dnsapi.cn")
+    conn.request("POST", "/Monitor.List", urllib.urlencode(params), headers)
+ 
+    response = conn.getresponse()
+    data = response.read()
+    jsonData=json.loads(data)
+    conn.close()
+    status = jsonData['monitors'][0]['status']  # 只取一个
+    return status
+
+    
+if __name__ == '__main__':
+    try:
+        cachestatus = memcache.get("site_fails")
+        if cachestatus != 'down' and cachestatus != 'ok':
+            ddns('hisen.github.com.')
+            memcache.set("site_fails", 'down')
+            
+        status = getPiStatus()
+        if cachestatus == 'down' and (status == 'Warn' or status == 'Ok'):
+            ddns('pi.laoniangke.com.')
+            memcache.set("site_fails", 'ok')
+        if status == 'Down':
+            if cachestatus == 'ok':
+                ddns('hisen.github.com.')
+            memcache.set("site_fails", 'down')
+    
+    except Exception, e:
+        pass
+
+</pre>
+
+<br />
+<br />
+<p>DNSPod目前免费的用户也有D监控支持URL的回调，这样的话可以直接使用这个功能就可以了。使用方式官网也有介绍。本篇文章的方式也可以正常工作暂时不换了。</p>
