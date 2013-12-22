@@ -1,0 +1,127 @@
+---
+layout: post
+title: HTTP之form表单
+category: web
+keywords: form,action,get,post
+---
+
+<p>这次的项目遇到了两个问题，正好也是http的from的相关内容。做一下记录简单描述，两个问题分别是：1：form表单提交时的enctype问题；2:form中action的url链接带参数情况下,method的GET与POST区别。</p>
+<p>第一个问题是C/S模式下，在对老代码进行重构的时候，为了测试新代码踩的坑，将原先程序运行客户端发送请求的包，在新的代码下重放时遇到。包如下：</p>
+<pre>
+POST /xxxx/xxxxxxx?version=1.10.12.242&req=ybdy&action=update HTTP/1.1
+
+Host: http://xxxx
+Connection: keep-alive
+Content-Length: 926
+Accept: application/json, text/javascript, */*
+Content-Type: application/x-www-form-urlencoded
+Origin: http://xxxx
+User-Agent: Mozilla/5.0 (Windows NT 6.1) Chrome/21.0.1180.91 Safari/537.1
+X-Requested-With: XMLHttpRequest
+Referer: http://test.com.cn//xxxx/xxxxxxx?version=1.10.12.242&req=ybdy&id=587&num=16
+Accept-Encoding: gzip,deflate
+Accept-Language: en-us,en
+Accept-Charset: iso-8859-1,*,utf-8
+Cookie: USERID=hisen; version=1.10.12.242
+
+
+xml=%253C%3Fxml%2520version%3D%25221.0%2522%2520encoding%3D%252...
+</pre>
+
+<p>初一看POST主体中有%符号，就直接复制了代码在本地进行urldecode想看看内容是什么。上面POST的主体部分，本身经过了urlencode，然后再提交的时候使用了Content-Type: application/x-www-form-urlencoded。这样就两次urlencode了。然后在服务端想当然的进行两次的urldecode，可想而知怎么样都得不到正确的结果。</p>
+<p>第二个问题是与前端交互的时候，一个查询框交代了自己的需求，前端的同事在form表单中使用GET进行提交，导致后端php怎么样都得不到url中的参数</p>
+<h4 id="_1">下面是针对上面两个问题的具体知识点：</h4>
+<p>Content-Type 实体中所承载对象的类型</p>
+<p  style="font-size: 0.88em;">
+enctype = content-type [CI]
+This attribute specifies the content type used to submit the form to the server (when the value of method is "post"). The default value for this attribute is "application/x-www-form-urlencoded". The value "multipart/form-data" should be used in combination with the INPUT element,type="file".
+</p>
+<br />
+<p><strong>from表单支持的enctype有以下几种</strong>：</p>
+<p>1.application/x-www-form-urlencoded 在发送前编码所有字符（默认）</p>
+<p>2.multipart/form-data    不对字符编码。在使用包含文件上传控件的表单时，必须使用该值。</p>
+<p>3.text/plain    空格转换为 "+" 加号，但不对特殊字符编码。</p>
+<br />
+
+<p>默认的情况下当method使用POST会使用application/x-www-form-urlencoded，对提交的内容进行解码。然后web服务器会解析请求头，根据相关编码进行解码，在php获取参数的时候其实是已经web服务器处理过的数据。这也是为什么post在默认情况下可以有效的避免乱码问题的原因。</p>
+<p>urlencode也叫百分号编码，常见的如空格符转义为%20,百分号转义为%25。</p>
+</p><strong>以下是《HTTP权威指南》中对URI字符集合的描述</strong></p>
+<pre>
+未保留                   [A-Za-z0-9]|"-"|"_"|"."|"!"|"~"|"*"|"'"|"("|")"
+保留                   ";"|"/"|"?"|":"|"@"|"&amp;"|"="|""|"$"|","
+转义                     "%" HEX HEX
+</pre>
+<p><strong>GET与POST在from的action中的不同</strong></p>
+
+<p style="font-size: 0.88em;">If the method is "get" - -, the user agent takes the value of action, appends a ? to it, then appends the form data set, encoded using the application/x-www-form-urlencoded content type. The user agent then traverses the link to this URI. In this scenario, form data are restricted to ASCII codes.</p>
+
+<p style="font-size: 0.88em;">If the method is "post" --, the user agent conducts an HTTP post transaction using the value of the action attribute and a message created according to the content type specified by the enctype attribute.</p>
+
+<p>当使用get提交表单的话，浏览器是使用了action的值，然后追加‘?’发送数据，直接导致当action中存在?name=hisen这样的结构后面的参数全部丢失。使用post提交的时候是提取action的内容，并用enctype定义的属性创建信息，这样就不会丢失url中的参数了。</p>
+<p>还有一个可能遇到的问题是，post提交的数据，当你想刷新的时候，浏览器会弹出提示，这样就影响用户体验。需要改成get提交就可以了</p>
+<p><strong>GET与POST的区别</strong></p>
+<table style="border-collapse: collapse; border-spacing: 0;" border="1">
+  <tbody><tr>
+    <th style="width:30%">&nbsp;</th>
+    <th style="width:35%">GET</th>
+    <th>POST</th>
+  </tr>
+  <tr>
+    <td>BACK button/Reload</td>
+    <td>Harmless</td>
+    <td>Data will be re-submitted (the browser should alert the user that the data are about to be re-submitted)</td>
+  </tr>
+    <tr>
+    <td>Bookmarked</td>
+    <td>Can be bookmarked</td>
+    <td>Cannot be bookmarked</td>
+  </tr>
+    <tr>
+    <td>Cached</td>
+    <td>Can be cached</td>
+    <td>Not cached</td>
+  </tr>
+    <tr>
+    <td>Encoding type</td>
+    <td>application/x-www-form-urlencoded</td>
+    <td>application/x-www-form-urlencoded or multipart/form-data. Use multipart 
+    encoding for binary data</td>
+  </tr>
+  <tr>
+    <td>History</td>
+    <td>Parameters remain in browser history</td>
+    <td>Parameters are not saved in browser history</td>
+  </tr>
+  <tr>
+    <td>Restrictions on data length</td>
+    <td>Yes, when sending data, the GET method adds the data to the URL; and the 
+    length of a URL is limited</td>
+    <td>No restrictions</td>
+  </tr>
+  <tr>
+    <td>Restrictions on data type</td>
+    <td>Only ASCII characters allowed</td>
+    <td>No restrictions. Binary data is also allowed</td>
+  </tr>
+  <tr>
+    <td>Security</td>
+    <td>GET is less secure compared to POST because data sent is part of the URL<br>
+    <br>
+    Never use GET when sending passwords or other sensitive 
+    information!</td>
+    <td>POST is a little safer than GET because the parameters are not stored in 
+    browser history or in web server logs</td>
+  </tr>
+  <tr>
+    <td>Visibility</td>
+    <td>Data is visible to everyone in the URL</td>
+    <td>Data is not displayed in the URL</td>
+  </tr>
+  </tbody>
+  </table>
+
+
+<p><strong>参考资料</strong>：</p>
+<p>http://zh.wikipedia.org/wiki/百分号编码</p>
+<p>http://www.w3.org/TR/html401/interact/forms.html</p>
+<p>《HTTP权威指南》</p>
