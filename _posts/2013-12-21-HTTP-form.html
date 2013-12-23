@@ -30,7 +30,7 @@ xml=%253C%3Fxml%2520version%3D%25221.0%2522%2520encoding%3D%252...
 
 <p>初一看POST主体中有%符号，就直接复制了代码在本地进行urldecode想看看内容是什么。上面POST的主体部分，本身经过了urlencode，然后再提交的时候使用了Content-Type: application/x-www-form-urlencoded。这样就两次urlencode了。然后在服务端想当然的进行两次的urldecode，可想而知怎么样都得不到正确的结果。</p>
 <p>第二个问题是与前端交互的时候，一个查询框交代了自己的需求，前端的同事在form表单中使用GET进行提交，导致后端php怎么样都得不到url中的参数</p>
-<h4 id="_1">下面是针对上面两个问题的具体知识点：</h4>
+<h4>下面是针对上面两个问题的具体知识点：</h4>
 <p>Content-Type 实体中所承载对象的类型</p>
 <p  style="font-size: 0.88em;">
 enctype = content-type [CI]
