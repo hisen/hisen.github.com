@@ -32,7 +32,7 @@ xml=%253C%3Fxml%2520version%3D%25221.0%2522%2520encoding%3D%252...
 <p>第二个问题是与前端交互的时候，一个查询框交代了自己的需求，前端的同事在form表单中使用GET进行提交，导致后端php怎么样都得不到url中的参数</p>
 <h4>下面是针对上面两个问题的具体知识点：</h4>
 <p>Content-Type 实体中所承载对象的类型</p>
-<p  style="font-size: 0.88em;">
+<p>
 enctype = content-type [CI]
 This attribute specifies the content type used to submit the form to the server (when the value of method is "post"). The default value for this attribute is "application/x-www-form-urlencoded". The value "multipart/form-data" should be used in combination with the INPUT element,type="file".
 </p>
@@ -53,14 +53,14 @@ This attribute specifies the content type used to submit the form to the server 
 </pre>
 <p><strong>GET与POST在from的action中的不同</strong></p>
 
-<p style="font-size: 0.88em;">If the method is "get" - -, the user agent takes the value of action, appends a ? to it, then appends the form data set, encoded using the application/x-www-form-urlencoded content type. The user agent then traverses the link to this URI. In this scenario, form data are restricted to ASCII codes.</p>
+<p>If the method is "get" - -, the user agent takes the value of action, appends a ? to it, then appends the form data set, encoded using the application/x-www-form-urlencoded content type. The user agent then traverses the link to this URI. In this scenario, form data are restricted to ASCII codes.</p>
 
-<p style="font-size: 0.88em;">If the method is "post" --, the user agent conducts an HTTP post transaction using the value of the action attribute and a message created according to the content type specified by the enctype attribute.</p>
+<p>If the method is "post" --, the user agent conducts an HTTP post transaction using the value of the action attribute and a message created according to the content type specified by the enctype attribute.</p>
 
 <p>当使用get提交表单的话，浏览器是使用了action的值，然后追加‘?’发送数据，直接导致当action中存在?name=hisen这样的结构后面的参数全部丢失。使用post提交的时候是提取action的内容，并用enctype定义的属性创建信息，这样就不会丢失url中的参数了。</p>
 <p>还有一个可能遇到的问题是，post提交的数据，当你想刷新的时候，浏览器会弹出提示，这样就影响用户体验。需要改成get提交就可以了</p>
 <p><strong>GET与POST的区别</strong></p>
-<table style="border-collapse: collapse; border-spacing: 0;" border="1">
+<table>
   <tbody><tr>
     <th style="width:30%">&nbsp;</th>
     <th style="width:35%">GET</th>
