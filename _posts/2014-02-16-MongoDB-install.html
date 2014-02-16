@@ -5,14 +5,13 @@ category: php
 keywords: php,MongoDB
 ---
 
-<h5><a name="%E5%AE%89%E8%A3%85" class="anchor" href="#%E5%AE%89%E8%A3%85"><span class="octicon octicon-link"></span></a>安装</h5>
+<p><strong>安装</strong></p>
 
 <p>./mongod --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/dblogs --fork</p>
 
-<p>不能使用kill -9 pid 会形成锁文件。导致无法启动，需要在data目录下删除mongodb.lock</p>
+<p>不能使用kill -9 pid 会形成锁文件。导致无法启动，需要在data目录下删除mongodb.lock</p><br>
 
-<h5>
-<a name="%E4%BD%BF%E7%94%A8" class="anchor" href="#%E4%BD%BF%E7%94%A8"><span class="octicon octicon-link"></span></a>使用</h5>
+<p><strong>使用</strong></p>
 
 <p>bin目录下的<br>
 ./mongo<br>
@@ -64,65 +63,54 @@ db.c1.update({name:"chenjiang"},{$addtoset:{post:100}}) 如果存在100，则不
 db.c1.update({name:"chenjiang"},{$addtoset:{post:{$each:[100,150,200]}}}) 批量操作<br>
 db.c1.update({name:"chenjiang"},{$pop:{post:1}}) 删除post的最后一个值 ，-1为第一个<br>
 db.c1.update({name:"chenjiang"},{$pull:{post:100}}) 删除数组中的值 ，pullAll批量删除<br>
-db.c1.update({name:"chenjiang"},{$rename:{name:"nice"}}) 修改字段的名称  </p>
+db.c1.update({name:"chenjiang"},{$rename:{name:"nice"}}) 修改字段的名称  </p><br>
 
-<h5>
-<a name="%E5%BB%BA%E7%AB%8B%E7%B4%A2%E5%BC%95" class="anchor" href="#%E5%BB%BA%E7%AB%8B%E7%B4%A2%E5%BC%95"><span class="octicon octicon-link"></span></a>建立索引</h5>
+<p><strong>建立索引</strong></p>
 <p>db.c1.getIndexKeys() 查看索引<br>
 db.c1.ensureIndex({name:1}) 在字段name上建立升序的索引，-1为降序<br>
 db.c1.ensureIndex({name:1},{unqiue:1}) 建立唯一索引<br>
-db.c1.dropIndex({name:1}) 删除索引  </p>
+db.c1.dropIndex({name:1}) 删除索引  </p><br>
 
-<h5>
-<a name="%E5%AF%BC%E5%87%BA%E6%95%B0%E6%8D%AE" class="anchor" href="#%E5%AF%BC%E5%87%BA%E6%95%B0%E6%8D%AE"><span class="octicon octicon-link"></span></a>导出数据</h5>
-<p>./mongoexport -d test -c c1 -o /tmp/c1.out  </p>
+<p><strong>导出数据</strong></p>
+<p>./mongoexport -d test -c c1 -o /tmp/c1.out  </p><br>
 
-<h5>
-<a name="%E5%AF%BC%E5%85%A5" class="anchor" href="#%E5%AF%BC%E5%85%A5"><span class="octicon octicon-link"></span></a>导入</h5>
-<p>./mongoimport -d test -c c1 /tmp/c1.out  </p>
+<p><strong>导入</strong></p>
+<p>./mongoimport -d test -c c1 /tmp/c1.out  </p><br>
 
-<h5>
-<a name="%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD" class="anchor" href="#%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD"><span class="octicon octicon-link"></span></a>数据备份</h5>
-<p>./mongodump -d  test -o /tmp/  </p>
+<p><strong>数据备份</strong></p>
+<p>./mongodump -d  test -o /tmp/  </p><br>
 
-<h5>
-<a name="%E6%95%B0%E6%8D%AE%E8%BF%98%E5%8E%9F" class="anchor" href="#%E6%95%B0%E6%8D%AE%E8%BF%98%E5%8E%9F"><span class="octicon octicon-link"></span></a>数据还原</h5>
-<p>./mongorestore -d test /tmp/test  </p>
+<p><strong>数据还原</strong></p>
+<p>./mongorestore -d test /tmp/test  </p><br>
 
-<h5>
-<a name="%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E8%AE%A4%E8%AF%81" class="anchor" href="#%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E8%AE%A4%E8%AF%81"><span class="octicon octicon-link"></span></a>用户授权认证</h5>
+<p><strong>用户授权认证</strong></p>
 <p>use admin<br>
 db.addUser("root","123456") // 退出重新登陆admin<br>
 ./mongo -uroot -p123456 localhost:27017/admin  </p>
-
-<h5>
-<a name="%E4%B8%BB%E4%BB%8E%E9%85%8D%E7%BD%AE" class="anchor" href="#%E4%B8%BB%E4%BB%8E%E9%85%8D%E7%BD%AE"><span class="octicon octicon-link"></span></a>主从配置</h5>
+<br>
+<p><strong>主从配置</strong></p>
 <p>./mongod --master --dbpath=/usr/local/mongodb/data1/ --logpath=/usr/local/mongodb/dblogs1 --fork --port 21000<br>
 ./mongod --slave --source localhost:21000 --dbpath=/usr/local/mongodb/data2/ --logpath=/usr/local/mongodb/dblogs2 --fork --port 22000  </p>
-
-<h5>
-<a name="%E7%99%BB%E9%99%86" class="anchor" href="#%E7%99%BB%E9%99%86"><span class="octicon octicon-link"></span></a>登陆</h5>
+<br>
+<p><strong>登陆</strong></p>
 <p>./mongo --port 20001  </p>
-
+</br>
 <p>从服务需要查看要加db.slaveOk()  </p>
-<h5>
-<a name="%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E6%96%B9%E5%BC%8F%E5%90%AF%E5%8A%A8mongo" class="anchor" href="#%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E6%96%B9%E5%BC%8F%E5%90%AF%E5%8A%A8mongo"><span class="octicon octicon-link"></span></a>用户授权方式启动mongo</h5>
-<p>./mongod --auth --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/dblogs --fork  </p>
+<br>
+<p><strong>用户授权方式启动mongo</strong></p>
+<p>./mongod --auth --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/dblogs --fork  </p><br>
 
-<h5>
-<a name="%E5%88%9B%E5%BB%BAadmin%E7%9A%84%E8%B4%A6%E6%88%B7%E4%BF%A1%E6%81%AF" class="anchor" href="#%E5%88%9B%E5%BB%BAadmin%E7%9A%84%E8%B4%A6%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="octicon octicon-link"></span></a>创建admin的账户信息</h5>
+<p><strong>创建admin的账户信息</strong></p>
 <p>use admin<br>
 db.addUser("root","123456") // 退出重新登陆admin<br>
-./mongo -uroot -p123456 localhost:27017/admin  </p>
+./mongo -uroot -p123456 localhost:27017/admin  </p><br>
 
-<h5>
-<a name="%E7%BB%99%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%AE%A1%E7%90%86%E7%94%A8%E6%88%B7" class="anchor" href="#%E7%BB%99%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%AE%A1%E7%90%86%E7%94%A8%E6%88%B7"><span class="octicon octicon-link"></span></a>给数据库创建管理用户</h5>
+<p><strong>给数据库创建管理用户</strong></p>
 <p>use test<br>
 db.addUser("user1","123456") // 退出重新登陆test<br>
-./mongo -uuser1 -p123456 localhost:27017/test  </p>
+./mongo -uuser1 -p123456 localhost:27017/test  </p><br>
 
-<h5>
-<a name="php%E9%93%BE%E6%8E%A5mongo" class="anchor" href="#php%E9%93%BE%E6%8E%A5mongo"><span class="octicon octicon-link"></span></a>php链接mongo</h5>
+<p><strong>php链接mongo</strong></p>
 <pre>
 db.c1.find()
 { "_id" : ObjectId("523e10bb213d334dc7f470fe"), "name" : "chencai" }
@@ -177,8 +165,7 @@ $data = $c1-&gt;update($arr, $marr, $opts);
 
 </pre>
 
-<h3>
-<a name="%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99" class="anchor" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="octicon octicon-link"></span></a>参考资料</h3>
+<p><strong>参考资料</strong></p>
 
 <p>《MongoDB权威指南》</p>
 <p>php手册</p>
