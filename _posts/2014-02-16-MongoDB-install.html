@@ -1,0 +1,184 @@
+---
+layout: post
+title: MongoDB基础实例
+category: php
+keywords: php,MongoDB
+---
+
+<h5><a name="%E5%AE%89%E8%A3%85" class="anchor" href="#%E5%AE%89%E8%A3%85"><span class="octicon octicon-link"></span></a>安装</h5>
+
+<p>./mongod --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/dblogs --fork</p>
+
+<p>不能使用kill -9 pid 会形成锁文件。导致无法启动，需要在data目录下删除mongodb.lock</p>
+
+<h5>
+<a name="%E4%BD%BF%E7%94%A8" class="anchor" href="#%E4%BD%BF%E7%94%A8"><span class="octicon octicon-link"></span></a>使用</h5>
+
+<p>bin目录下的<br>
+./mongo<br>
+show dbs 查看数据库<br>
+show tables 或者show collections 查看集合<br>
+db 查看当前使用的db<br>
+db.c1.insert({name:"hisen"}); 在当前数据库生成c1集合，插入一条文档<br>
+db.c1.save({_id:1,name:"hisen"}); id相同的时候，主键不存在save则插入，主键存在则更新。而insert会报主键冲突  </p>
+<br>
+<p>db.c1.remove() 删除集合，后面加上条件则指定删除某条记录db.c1.remove({name:"hisen"})  </p>
+<br>
+<p>db.c1.find() 查看文档信息，后面添加条件则查找指定的记录db.c1.find({name:"hisen"})<br>
+db.c1.findone() 查找一条<br>
+db.c1.find({},{name:0}) 查找除name字段之外的所有字段<br>
+db.c1.find({},{name:1}) 查找只有name的字段<br>
+db.c1.find({age:{$gt:20}}) 查找年龄大于20的,大于等于 $gte, $ne不等于<br>
+db.c1.find({age:{$lt:20}}) 查找年龄大于20的,小于等于 $lte<br>
+db.c1.find().count() 查找记录条数<br>
+db.c1.find().sort({age:1}) 按照年龄进行升序查找，-1:为降序<br>
+db.c1.find().limit(10) 返回10条记录<br>
+db.c1.find().skip(10).limit(10) 取第10条记录之后的10条记录，类似sql的limit(10,10)<br>
+db.c1.find().sort({age:1}).skip(10).limit(10) 安装age排序的分页<br>
+db.c1.find({post:{$all:[10,22,30]}}) 查找post字段同时包含10,22,30的信息<br>
+db.c1.find({age:{$exists:1}}) 包含age字段的信息,0为不包含<br>
+db.c1.find({age:{$mod:[2,1]}}) 取年龄除2余1的信息<br>
+db.c1.find({age:{$in:[20,22]}}) 取年龄20,22的信息,$nin为不在<br>
+db.c1.find({$or:[{name:"hisen"},{name:"hisenKing"}]}) 去姓名为hisen，hisenKing的信息。$nor则为反<br>
+db.c1.find({post:{$size:4}}) post的数字个数为4的<br>
+db.c1.distinct("name")<br>
+db.c1.find({age:{$type:10}}) 查找age的值为null的信息，或者使用db.c1.find({age:{$exists:1,$in:[null]}})  </p>
+<br>
+<p>db.collection.update(criteria,objNew, upsert, multi)<br>
+参数说明<br>
+criteria:用于设置查询条件的对象<br>
+objNew:用于设置更新内容的对象<br>
+upsert:如果记录已经存在，更新它，否则新增一条记录<br>
+multi:如果有多个符合条件的记录，全部更新<br>
+注意：默认情况下，只会更新第一个符合条件的记录  </p>
+<br>
+<p>db.c1.update({name:"hisen"},{name:"hisenKing"}) 这样会使原来name为hisen这条记录，其它的字段丢失。如果需要保留则使用<br>
+db.c1.update({name:"chenjiang"},{$set:{name:"chencai"}})。同样的添加字段也是使用set方式<br>
+db.c1.update({name:"chenjiang"},{$set:{sex:"girl"}})  </p>
+<br>
+<p>db.c1.update({name:"chenjiang"},{$inc:{age:10}}) 在原来age的基础上加上10，没有的字段则添加<br>
+db.c1.update({name:"chenjiang"},{$unset:{age:true}}) 没有删除唯一字段_id<br>
+db.c1.update({name:"chenjiang"},{$push:{post:100}}) 在字段post的数组中添加一个值100<br>
+db.c1.update({name:"chenjiang"},{$pushAll:{post:[100,200,300]}}) 在字段post的数组中添加一个值100;如果使用push的话，是插入一个子集<br>
+db.c1.update({name:"chenjiang"},{$addtoset:{post:100}}) 如果存在100，则不插入，否则插入<br>
+db.c1.update({name:"chenjiang"},{$addtoset:{post:{$each:[100,150,200]}}}) 批量操作<br>
+db.c1.update({name:"chenjiang"},{$pop:{post:1}}) 删除post的最后一个值 ，-1为第一个<br>
+db.c1.update({name:"chenjiang"},{$pull:{post:100}}) 删除数组中的值 ，pullAll批量删除<br>
+db.c1.update({name:"chenjiang"},{$rename:{name:"nice"}}) 修改字段的名称  </p>
+
+<h5>
+<a name="%E5%BB%BA%E7%AB%8B%E7%B4%A2%E5%BC%95" class="anchor" href="#%E5%BB%BA%E7%AB%8B%E7%B4%A2%E5%BC%95"><span class="octicon octicon-link"></span></a>建立索引</h5>
+<p>db.c1.getIndexKeys() 查看索引<br>
+db.c1.ensureIndex({name:1}) 在字段name上建立升序的索引，-1为降序<br>
+db.c1.ensureIndex({name:1},{unqiue:1}) 建立唯一索引<br>
+db.c1.dropIndex({name:1}) 删除索引  </p>
+
+<h5>
+<a name="%E5%AF%BC%E5%87%BA%E6%95%B0%E6%8D%AE" class="anchor" href="#%E5%AF%BC%E5%87%BA%E6%95%B0%E6%8D%AE"><span class="octicon octicon-link"></span></a>导出数据</h5>
+<p>./mongoexport -d test -c c1 -o /tmp/c1.out  </p>
+
+<h5>
+<a name="%E5%AF%BC%E5%85%A5" class="anchor" href="#%E5%AF%BC%E5%85%A5"><span class="octicon octicon-link"></span></a>导入</h5>
+<p>./mongoimport -d test -c c1 /tmp/c1.out  </p>
+
+<h5>
+<a name="%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD" class="anchor" href="#%E6%95%B0%E6%8D%AE%E5%A4%87%E4%BB%BD"><span class="octicon octicon-link"></span></a>数据备份</h5>
+<p>./mongodump -d  test -o /tmp/  </p>
+
+<h5>
+<a name="%E6%95%B0%E6%8D%AE%E8%BF%98%E5%8E%9F" class="anchor" href="#%E6%95%B0%E6%8D%AE%E8%BF%98%E5%8E%9F"><span class="octicon octicon-link"></span></a>数据还原</h5>
+<p>./mongorestore -d test /tmp/test  </p>
+
+<h5>
+<a name="%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E8%AE%A4%E8%AF%81" class="anchor" href="#%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E8%AE%A4%E8%AF%81"><span class="octicon octicon-link"></span></a>用户授权认证</h5>
+<p>use admin<br>
+db.addUser("root","123456") // 退出重新登陆admin<br>
+./mongo -uroot -p123456 localhost:27017/admin  </p>
+
+<h5>
+<a name="%E4%B8%BB%E4%BB%8E%E9%85%8D%E7%BD%AE" class="anchor" href="#%E4%B8%BB%E4%BB%8E%E9%85%8D%E7%BD%AE"><span class="octicon octicon-link"></span></a>主从配置</h5>
+<p>./mongod --master --dbpath=/usr/local/mongodb/data1/ --logpath=/usr/local/mongodb/dblogs1 --fork --port 21000<br>
+./mongod --slave --source localhost:21000 --dbpath=/usr/local/mongodb/data2/ --logpath=/usr/local/mongodb/dblogs2 --fork --port 22000  </p>
+
+<h5>
+<a name="%E7%99%BB%E9%99%86" class="anchor" href="#%E7%99%BB%E9%99%86"><span class="octicon octicon-link"></span></a>登陆</h5>
+<p>./mongo --port 20001  </p>
+
+<p>从服务需要查看要加db.slaveOk()  </p>
+<h5>
+<a name="%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E6%96%B9%E5%BC%8F%E5%90%AF%E5%8A%A8mongo" class="anchor" href="#%E7%94%A8%E6%88%B7%E6%8E%88%E6%9D%83%E6%96%B9%E5%BC%8F%E5%90%AF%E5%8A%A8mongo"><span class="octicon octicon-link"></span></a>用户授权方式启动mongo</h5>
+<p>./mongod --auth --dbpath=/usr/local/mongodb/data/ --logpath=/usr/local/mongodb/dblogs --fork  </p>
+
+<h5>
+<a name="%E5%88%9B%E5%BB%BAadmin%E7%9A%84%E8%B4%A6%E6%88%B7%E4%BF%A1%E6%81%AF" class="anchor" href="#%E5%88%9B%E5%BB%BAadmin%E7%9A%84%E8%B4%A6%E6%88%B7%E4%BF%A1%E6%81%AF"><span class="octicon octicon-link"></span></a>创建admin的账户信息</h5>
+<p>use admin<br>
+db.addUser("root","123456") // 退出重新登陆admin<br>
+./mongo -uroot -p123456 localhost:27017/admin  </p>
+
+<h5>
+<a name="%E7%BB%99%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%AE%A1%E7%90%86%E7%94%A8%E6%88%B7" class="anchor" href="#%E7%BB%99%E6%95%B0%E6%8D%AE%E5%BA%93%E5%88%9B%E5%BB%BA%E7%AE%A1%E7%90%86%E7%94%A8%E6%88%B7"><span class="octicon octicon-link"></span></a>给数据库创建管理用户</h5>
+<p>use test<br>
+db.addUser("user1","123456") // 退出重新登陆test<br>
+./mongo -uuser1 -p123456 localhost:27017/test  </p>
+
+<h5>
+<a name="php%E9%93%BE%E6%8E%A5mongo" class="anchor" href="#php%E9%93%BE%E6%8E%A5mongo"><span class="octicon octicon-link"></span></a>php链接mongo</h5>
+<pre>
+db.c1.find()
+{ "_id" : ObjectId("523e10bb213d334dc7f470fe"), "name" : "chencai" }
+{ "_id" : ObjectId("523e0d65213d334dc7f470fd"), "name" : "hisenKing" }
+{ "_id" : ObjectId("523e132a213d334dc7f470ff"), "name" : "chencai" }
+{ "_id" : ObjectId("523e135b213d334dc7f47100"), "name" : "chencai", "age" : 25 }
+{ "_id" : ObjectId("523e1c647ec0348bb019f872"), "name" : "chen", "age" : 22 }
+</pre>
+<br>
+<pre>
+$m = new Mongo('mongodb://user2:123456@localhost:27017/test');  
+$db = $m-&gt;test;
+$c1 = $db-&gt;c1;
+$arr = array();
+$data = $c1-&gt;find($arr)-&gt;sort(array('name'=&gt;1))-&gt;skip(2)-&gt;limit(2);
+var_dump(iterator_to_array($data));
+
+// 聚合count，distinct
+$num = $c1-&gt;find($array)-&gt;count();
+$data = $db-&gt;command(array("distinct" =&gt; "c1", "key" =&gt; "name"));
+print_r($data['values']);
+
+
+// 指定where查找
+$array = array('name' =&gt; 'chencai');
+$data = $c1-&gt;find($array);
+print_r(iterator_to_array($data));
+
+// 指定id查找
+$id = new mongoId('523e135b213d334dc7f47100');
+$array = array('_id' =&gt; $id);
+$data = $c1-&gt;find($array);
+print_r(iterator_to_array($data));
+
+// 插入数据
+$arr = array("name"=&gt;"hisenking","age"=&gt;"29","sex"=&gt;"man");
+if($c1-&gt;insert($arr)){
+        echo 'ok';
+}
+
+// 删除
+$arr = array("name"=&gt;"chen");
+if($c1-&gt;remove($arr)){
+        echo 'ok';
+}
+
+// 更新
+$arr = array("name"=&gt;"hisenking", "age"=&gt;"29", "sex" =&gt; "man");
+$marr = array('$set' =&gt; array('sex'=&gt;"nv"));
+$opts = array("upsert"=&gt;0, "multiple"=&gt;1);
+$data = $c1-&gt;update($arr, $marr, $opts);
+
+</pre>
+
+<h3>
+<a name="%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99" class="anchor" href="#%E5%8F%82%E8%80%83%E8%B5%84%E6%96%99"><span class="octicon octicon-link"></span></a>参考资料</h3>
+
+<p>《MongoDB权威指南》</p>
+<p>php手册</p>
