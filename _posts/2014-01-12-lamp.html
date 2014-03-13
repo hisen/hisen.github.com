@@ -1,0 +1,178 @@
+
+---
+layout: post
+title: lamp环境搭建(ubuntu12.04 + apache2.2 + mysql5.5 + php5.5)
+category: other
+keywords: ubuntu12.04,apache2.2,mysql5.5,php5.5
+---
+
+<p>记得离上次完整的编译安装php环境已经3年前的了，平时一般都是在本机上使用集成安装包。这次闲在家中再次重温一下，之前的是在centos下装的lnmp，各种版本都比较老了。这次使用了Ubuntu，以下是安装的完成步骤：  </p>
+<p>因为是刚装上的Ubuntu系统，很多软件未安装，首页进行必要的工具安装
+<pre>
+sudo apt-get install gcc
+sudo apt-get install g++
+sudo apt-get install vim
+sudo apt-get install sysv-rc-conf
+</pre>
+sysv-rc-conf是一个非常方便的软件启动管理工具，一目了然  </p>
+<p><strong>1 安装Apache</strong><br />
+<pre>
+wget http://mirror.bjtu.edu.cn/apache/httpd/httpd-2.2.26.tar.gz 
+tar zxf httpd-2.2.26.tar.gz 
+cd httpd-2.2.26
+./configure --prefix=/usr/local/apache --enable-modules=so --enable-rewrite
+sudo make
+sudo make install</p>
+<p>sudo cp /usr/local/apache/bin/apachect1 /etc/init.d/apachect1
+sudo chmod 775 /etc/init.d/apachect1
+sysv-rc-conf apachect1 on (没有安装的话需要安装sysv-rc-conf, sudo apt-get install sysv-rc-conf)
+</pre></p>
+<p><strong>2.安装mysql5.5.36</strong><br />
+mysql5.5之后编码安装由原来的configure转到cmake，所以需要安装cmake安装包
+<pre>
+apt-get install cmake
+wget http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.36-tar.gz
+tar zxf mysql-5.5.36-tar.gz
+cd mysql-5.5.36
+</pre></p>
+<p>cmake的配置选项如下：<br />
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/mysql/ -DSYSCONFDIR=/usr/local/mysql/etc -DMYSQL_DATADIR=/usr/local/mysql/data -DMYSQL_TCP_PORT=3306 -DMYSQL_UNIX_ADDR=/tmp/mysqld.sock -DMYSQL_USER=mysql -DEXTRA_CHARSETS=all -DWITH_READLINE=1 -DWITH_SSL=system -DWITH_EMBEDDED_SERVER=1 -DENABLED_LOCAL_INFILE=1 -DWITH_INNOBASE_STORAGE_ENGINE=1</p>
+<p>错误：<br />
+CMake Error at cmake/readline.cmake:82 (MESSAGE):
+Curses library not found. Please install appropriate package,remove CMakeCache.txt and rerun cmake.On Debian/Ubuntu , package name is libncurses5-dev,on RedHat and derivates it is ncurses-devel.
+Call Stack (most recent call first):
+cmake/readline.cmake:126 (FIND_CURSES)
+cmake/readline.cmake:216 (MYSQL_USE_BUNDLED_LIBEDIT)
+CMakeLists.txt:256 (MYSQL_CHECK_READLINE)</p>
+<p>如回显所示，ubuntu下安装libncurses5-dev；redhat下安装ncurses-devel，并删除当前目录CMakeCache.txt(必须删除，否则报错依旧)并重新运行</p>
+<pre>
+sudo make && sudo make install
+</pre>
+
+<p>配置<br />
+<pre>
+sudo chown -R mysql .
+chgrp -R mysql .
+sudo ./scripts/mysql_install_db --user=mysql --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --no-defaults
+</pre>
+–no-defaults选项，如果没有该选项，则程序会自动载入默认的配置文件，而目前你还没有完成配置文件的编写，因此很可能载入的是错误的信息。如果该指令能够运行成功，那么恭喜你，你的MySQLy可以成功的启动了</p>
+<pre>
+mkdir /etc/mysql
+sudo cp /usr/local/mysql/support-files/my-medium.cnf /etc/mysql/my.cnf
+</pre>
+
+<p>文件中添加下面几行
+<pre>
+[mysqld]
+basedir         = /usr/local/mysql
+datadir         = /usr/local/mysql/data
+user            = mysql
+</pre></p>
+<p>开机启动<br />
+<pre>
+sudo /usr/local/mysql/support-files/mysql.server start
+sudo cp /usr/local/mysql/support-files/mysql.server /etc/init.d/mysql
+sudo cp /usr/local/mysql/bin/mysql /usr/bin/mysql
+</pre></p>
+<p><strong>3.安装php及其扩展</strong>
+<pre>
+wget http://sourceforge.net/projects/mcrypt/files/Libmcrypt/2.5.8/libmcrypt-2.5.8.tar.gz
+wget http://sourceforge.net/projects/mcrypt/files/MCrypt/2.6.8/mcrypt-2.6.8.tar.gz
+wget http://pecl.php.net/get/PDO_MYSQL-1.0.2.tgz
+wget http://sourceforge.net/projects/mhash/files/mhash/0.9.9.9/mhash-0.9.9.9.tar.gz
+wget http://ftp.gnu.org/pub/gnu/libiconv/libiconv-1.13.1.tar.gz
+wget ftp://ftp.kddlabs.co.jp/graphics/ImageMagick/ImageMagick.tar.gz
+</pre></p>
+<p>安装一些必要的软件<br />
+sudo apt-get install libxml2-dev libpcre3-dev libbz2-dev libcurl4-openssl-dev libdb4.8-dev libjpeg-dev libpng12-dev libxpm-dev libfreetype6-dev libmysqlclient-dev postgresql-server-dev-9.1 libt1-dev libgd2-xpm-dev libgmp-dev libsasl2-dev libmhash-dev unixodbc-dev freetds-dev libpspell-dev libsnmp-dev libtidy-dev libxslt1-dev libmcrypt-dev</p>
+<pre>
+tar zxf libiconv-1.13.1.tar.gz
+cd libiconv-1.13.1
+./configure --prefix=/usr/local
+sudo make && sudo make install
+
+tar zxf libmcrypt-2.5.8.tar.gz
+cd libmcrypt-2.5.8
+./configure
+sudo make && sudo make install
+sudo /sbin/ldconfig //搜索出可共享的动态链接库
+cd libltdl
+./configure --enable-ltdl-install
+sudo make && sudo make install
+
+tar zxvf mhash-0.9.9.9.tar.gz
+cd mhash-0.9.9.9
+./configure
+sudo make && sudo make install
+
+tar zxvf mcrypt-2.6.8.tar.gz
+cd mcrypt-2.6.8
+/sbin/ldconfig
+./confiure
+sudo make && sudo make install
+
+tar zxvf ImageMagick.tar.gz
+cd ImageMagick-6.8.8-7
+./confiure
+sudo make && sudo make install
+</pre>
+
+<p>配置php安装选项<br />
+./configure --prefix=/usr/local/php --with-apxs2=/usr/local/apache/bin/apxs --with-config-file-path=/etc --with-config-file-scan-dir=/etc/php.d --with-openssl --with-zlib --enable-bcmath --with-bz2 --with-curl --enable-ftp --with-gd --enable-gd-native-ttf --with-gettext --with-mhash --enable-mbstring --with-mcrypt --enable-soap --enable-zip --with-iconv=/usr/local/libiconv --with-mysql=/usr/local/mysql --without-pear</p>
+<p>然后编译安装<br />
+sudo make &amp;&amp; sudo make install  </p>
+<p>可能遇到以下错误，则表明缺少相关的软件，需要进行安装<br />
+configure: error: Cannot find OpenSSL's <evp.h>
+<pre>
+sudo apt-get install libcurl4-openssl-dev pkg-config
+</pre>  </p>
+<p>configure: error: Please reinstall the BZip2 distribution
+<pre>
+sudo apt-get install libbz2-dev
+</pre></p>
+<p>配置php.ini<br />
+<pre>
+sudo mkdir /etc/php.d
+sudo cp php.ini-development /etc/php.d/php.ini
+sudo vim /etc/php.d/php.ini
+</pre></p>
+<p>找到date.timezone去掉前面#修改成
+<pre>
+date.timezone = Asia/Shanghai
+</pre>
+否则当你查看phpinfo()的时候date扩展下面会报一行It is not safe to rely on the system's timezone settings相关的错误  </p>
+<pre>
+vim /usr/local/apache/conf/httpd.conf
+</pre>
+
+<p>找到DirectoryIndex index.html修改成
+<pre>
+DirectoryIndex index.html index.php
+</pre></p>
+<p>查找AddType application/x-gzip .gz .tgz<br />
+在后面加上一行<br />
+<pre>
+AddType application/x-httpd-php .php
+</pre></p>
+<p>添加一行
+<pre>
+ServerName localhost
+</pre>
+不然当启动Apache时会报以下错误
+httpd: Could not reliably determine the server's fully qualified domain name, using 127.0.1.1 for ServerName  </p>
+<p>重启Apache
+<pre>
+sudo /etc/init.d/apachect1 -k restart
+</pre></p>
+<p>测试/usr/local/apache/htdocs/test.php
+<pre>
+$conn = mysql_connect("localhost", "root", "") or die("unable connect to mysql");</p>
+<p>if ($conn) {
+    echo "it's connect, hello world";
+ } else  {
+    echo "it's can't connect";
+ }
+</pre></p>
+<p><strong>参考：</strong><br />
+http://zgadzaj.com/how-to-install-php-53-and-52-together-on-ubuntu-1204<br />
+http://forum.ubuntu.org.cn/viewtopic.php?t=330121</p>
