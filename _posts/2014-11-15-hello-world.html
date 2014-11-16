@@ -1,0 +1,234 @@
+---
+layout: post
+title: PHP扩展开发
+category: php
+keywords: php
+---
+
+<p>在自己工作中，身边的同事很少会写PHP扩展。也许是PHPER只要熟悉基本的PHP语法，差不多就可以应对工作中的任务需求。这样导致很少人会主动的深入学习PHP内部的知识。这也是个人认为PHP基本上都在写业务逻辑一层，挺尴尬的一种情况不前不后<br>
+编写PHP扩展之前我们得了解php的整个生命周期，如下图<br><img src="http://laoniangke.qiniudn.com/phplifespan.jpg" style="max-width:100%;"></p>
+
+<p>1.Call each extension'MINIT<br>
+这个过程扩展被载入时调用。  </p>
+
+<pre>
+PHP_MINIT_FUNCTION(hisen)
+{
+        // 注册常量或者类等初始化操作
+        return SUCCESS;
+}
+</pre>
+  
+
+<p>2.Request test.php<br>
+请求test.php。当请求到达后，PHP会初始化执行脚本的基本环境，例如创建一个执行环境，包括保存PHP运行过程中的变量名称和变量值内容的符号表，以及当前所有的函数以及类等信息的符号表。然后PHP会调用所有模块RINIT函数，在这个阶段各个模块也可以执行一些相关操作  </p>
+
+<pre>
+PHP_RINIT_FUNCTION(hisen)
+{
+        // 例如记录请求开始时间，与之后记录请求结束时间计算整个请求的耗时
+        return SUCCESS;
+}
+</pre>
+  
+
+<p>3.Execute test.php<br>
+执行test.php阶段，主要是把PHP文件编译成Opcode，然后再PHP虚拟机下执行  </p>
+
+<p>4.Call each extension's RSHUTDOWN<br>
+顺利的走到了自己文件的最后， 也可能是出师未捷，半道被用户给die或者exit了， 这时候PHP便会启动回收程序，收拾这个请求留下的烂摊子。 它这次会执行所有已加载扩展的RSHUTDOWN（俗称Request Shutdown）方法， 这时候扩展可以抓紧利用内核中的变量表之类的做一些事情， 因为一旦PHP把所有扩展的RSHUTDOWN方法执行完， 便会释放掉这次请求使用过的所有东西， 包括变量表的所有变量、所有在这次请求中申请的内存等等。  </p>
+
+<pre>
+PHP_RSHUTDOWN_FUNCTION(hisen)
+{
+        // 记录请求的结束时间，计算耗时
+        return SUCCESS;
+}
+</pre>  
+  
+
+<p>5.Call each extension's MSHUTDOWN<br>
+前面该启动的也启动了，该结束的也结束了，现在该Apache老人家歇歇的时候，当Apache通知PHP自己要Stop的时候，PHP便进入MSHUTDOWN（俗称Module Shutdown）阶段。这时候PHP便会给所有扩展下最后通牒，如果哪个扩展还有未了的心愿，就放在自己MSHUTDOWN方法里，这可是最后的机会了，一旦PHP把扩展的MSHUTDOWN执行完，便会进入自毁程序，这里一定要把自己擅自申请的内存给释放掉，否则就杯具了。  </p>
+
+<p>要注意的是，只有在服务器没有请求的情况下才会执行“Call each extension'MINIT”和“Call each extension's MSHUTDOWN”。  </p>
+
+<h4>
+<a name="%E4%BB%A5%E4%B8%8B%E6%98%AF%E6%95%B4%E4%B8%AA%E5%BC%80%E5%8F%91%E8%BF%87%E7%A8%8B" class="anchor" href="#%E4%BB%A5%E4%B8%8B%E6%98%AF%E6%95%B4%E4%B8%AA%E5%BC%80%E5%8F%91%E8%BF%87%E7%A8%8B"><span class="octicon octicon-link"></span></a>以下是整个开发过程</h4>
+
+<p>安装phpize  </p>
+
+<pre>
+sudo apt-get install php5-dev
+</pre>
+
+<p>查看是否安装成功  </p>
+
+<pre>
+phpize - version
+</pre>
+
+<p>输出  </p>
+
+<pre>
+Configuring for:
+PHP Api Version:         20090626
+Zend Module Api No:      20090626
+Zend Extension Api No:   220090626
+</pre>
+
+<p>下载php源码包,并解压之后，进入以下目录  </p>
+
+<pre>
+cd /php-5.5.9/ext/
+ext_skel --extname=hisen
+</pre>
+
+<p>修改config.m4<br>
+查看以下几行  </p>
+
+<pre>
+dnl If your extension references something external, use with:
+
+dnl PHP_ARG_WITH(hisen, for hisen support,
+dnl Make sure that the comment is aligned:
+dnl [  --with-hisen             Include hisen support])
+
+dnl Otherwise use enable:
+
+dnl PHP_ARG_ENABLE(hisen, whether to enable hisen support,
+dnl Make sure that the comment is aligned:
+dnl [  --enable-hisen           Enable hisen support])
+</pre>
+
+<p>dnl是行注释。看if的说明 如果你的扩展引用了其他一些组件则...否则...<br>
+所以这里我们就简单的创建扩展，将Otherwise下面的三行dnl去掉  </p>
+
+<pre>
+dnl Otherwise use enable:
+
+PHP_ARG_ENABLE(hisen, whether to enable hisen support,
+Make sure that the comment is aligned:
+[  --enable-hisen           Enable hisen support])
+</pre>
+
+<p>config.m4的说明<br><a href="http://www.php.net/manual/zh/internals2.buildsys.configunix.php">http://www.php.net/manual/zh/internals2.buildsys.configunix.php</a>  </p>
+
+<p>编写核心代码</p>
+
+<pre>
+sudo vim hisen.c
+</pre>
+
+<p>查找zend_function_entry hisen_functions在其前面加上一行</p>
+
+<pre>
+PHP_FUNCTION(say_hello_func);
+</pre>
+  
+
+<p>Zend引擎通过zend_function_entry结构数组把声明的导出函数引入内部，方法如下</p>
+
+<pre>
+zend_function_entry hisen_functions[] = {
+        PHP_FE(say_hello_func,        NULL)           // For testing, remove later
+        PHP_FE_END      // Must be the last line in hisen_functions[]
+};
+</pre>
+
+<p>Zend引擎在载入扩展时，自动把则个数组中的所有函数引入到函数表中，这样PHP脚本就可以调用这个函数了。<br>
+最后的PHP_FE_END(php5.3是{NULL, NULL, NULL})是必须的，Zend引擎就是靠这个判断导出函数列表是否完毕。  </p>
+
+<p>使用PHP_FUNCTON定义函数体  </p>
+
+<pre>
+PHP_FUNCTION(say_hello_func)
+{
+        char *arg = NULL;
+        int arg_len, len;
+        char *strg;
+
+        if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "sb", &amp;arg, &amp;arg_len, &amp;b) == FAILURE) {
+                return;
+        }
+
+        len = spprintf(&amp;strg, 0, "hello %.78s", arg);
+        RETURN_STRINGL(strg, len, 0);
+}
+</pre>  
+
+<p>因为PHP是支持可变参数的，所以参数的个数在没有被调用之前是不确定的，可以使用ZEND_NUM_ARGS()宏实现。  </p>
+
+<p>zend_parse_parameters() 函数负责读取用户从参数堆栈传递来参数，并将其适当地转换后放入局部 C 语言变量。如果用户传递的参数个数有误或类型不可被转换， 函数会发出一个冗长的错误信息，并返回 FAILURE。 当从函数简单返回的情况下——不修改 return_value，将默认的返回值 NULL 返回给用户。<br>
+注意，FAILURE 表示为 -1，SUCCESS 表示为 0。为了使代码清晰，应总是使用已命名的常量而不是其值。  </p>
+
+<p>传递给 zend_parse_parameters() 的第一个参数是用户实际传递到函数的参数数量。此数值做为 ht 参数传给函数，但就像上面讨论的那样，应使用做为实现细节的 ZEND_NUM_ARGS()。  </p>
+
+<p>为了与 PHP 的线程隔离、线程安全资源管理器兼容，还要用 TSRMLS_CC 传递线程上下文，没有启动线程安全时，这个宏辉被忽略。  </p>
+
+<p>如上面的代码"sb"指定传递一个字符串参数和一个布尔值的参数，其中如果是字符串时，除了接受字符串地址之外，还要接收字符串的长度。如上例的&amp;arg, &amp;arg_len  </p>
+
+<p>zend_parse_parameters() 类型说明符</p>
+
+<pre>
+修饰符   附加参数的类型   描述
+b   zend_bool   Boolean 值
+l   long        integer (long) 值
+d   double      float (double) 值
+s   char*, int  二进制的安全串
+h   HashTable*  数组的哈希表
+</pre>
+  
+
+<p>创建全局变量  </p>
+
+<pre>
+PHP_FUNCTION(showyear)
+{
+        zval *new_var;
+        MAKE_STD_ZVAL(new_var);
+        ZVAL_LONG(new_var, 10);
+        ZEND_SET_GLOBAL_VAR("new_var", new_var);
+}
+</pre>  
+  
+
+<p>测试文件test.php  </p>
+
+<pre>
+showyear();
+echo $new_var;
+</pre>
+
+<p>编写phpinfo()回调函数  </p>
+
+<pre>
+PHP_MINFO_FUNCTION(hisen)
+{
+        php_info_print_table_start();
+        php_info_print_table_header(2, "hisen support", "enabled");
+        php_info_print_table_row(2, "author", "hisen");
+        php_info_print_table_end();
+}
+</pre>
+
+<p>php_info_print_table_start()——开始phpinfo表格。无参数。<br>
+php_info_print_table_header()——输出表格头。第一个参数是整形，指明头的列数，然后后面的参数是与列数等量的(char*)类型参数用于指定显示的文字。<br>
+php_info_print_table_row()——输出表格内容。第一个参数是整形，指明这一行的列数，然后后面的参数是与列数等量的(char*)类型参数用于指定显示的文字。<br>
+php_info_print_table_end()——结束phpinfo表格。无参数。  </p>
+
+<pre>
+phpize
+./configure --with-php-config=/usr/local/php/bin/php-config
+sudo make
+sudo make install
+sudo vim /etc/php.d/php.ini // 添加一行extension=hisen.so
+sudo /etc/init.d/httpd -k restart
+</pre>  
+  
+
+<p><img src="http://laoniangke.qiniudn.com/phpextent.png" style="max-width:100%;"></p>
+
+<p>参考资料：<br>
+《PHP核心技术与最佳实践》<br>
+《PHP扩展开发及内核应用》<br>
+<a href="http://blog.codinglabs.org/articles/php-extension-dev-guide.html">http://blog.codinglabs.org/articles/php-extension-dev-guide.html</a></p>
