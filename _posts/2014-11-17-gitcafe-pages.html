@@ -1,0 +1,81 @@
+---
+layout: post
+title: gitcafe pages搭建blog,提高国内访问速度
+category: other
+keywords: gitcafe,gitcafe-pages
+---
+
+<p>github pages使用了大概一年多了，还是非常不错的。就是访问速度以及稳定性不是很好(你懂的)。因此在六个月没有更新blog之后，想着把印象笔记里面积累的知识点都整理下，记录到博客中。<br />
+第一篇就是这个了，如何使用gitcafe的pages服务搭建博客提升国内的访问速度。</p>
+<br />
+
+首先你的有gitcafe的账户。并以username作为项目名称，创建一个项目。<br />
+第二步就是迁移github上的项目并提交到gitcafe。<br />
+<pre>
+git clone https://github.com/hisen/hisen.github.com.git
+cd hisen.github.com
+rm -rf .git/
+git init
+git add .
+git commit -m 'blog'
+git remote add origin 'git@gitcafe.com:hisen/hisen.git'
+git checkout -b gitcafe-pages //不同于github,gitcafe需要建立gitcafe-pages分支
+git push origin gitcafe-pages
+</pre>
+
+上面进行push的时候可能会报如下错误：  
+<pre>
+The authenticity of host 'gitcafe.com (117.79.146.98)' can't be established.
+RSA key fingerprint is 84:9e:c9:8e:7f:36:28:08:7e:13:bf:43:12:74:11:4e.
+Are you sure you want to continue connecting (yes/no)? yes
+Warning: Permanently added 'gitcafe.com,117.79.146.98' (RSA) to the list of known hosts.
+Permission denied (publickey).
+fatal: The remote end hung up unexpectedly
+</pre>
+
+
+说明还没有创建SSH key，gitcafe服务器是使用了ssh与客户端进行通信的。<br />  
+
+解决方法：
+<pre>
+cd ~/.ssh //如果没有需要创建
+ls -a
+ssh-keygen -t rsa -C "你注册使用的邮箱"
+</pre>
+
+
+生成过程中会出现以下信息，按屏幕提示操作，并记得输入 passphrase 口令。<br />
+
+<pre>
+$ ssh-keygen -t rsa -C "你注册使用的邮箱"
+Generating public/private rsa key pair.
+Enter passphrase (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /home/pi/.ssh/id_rsa.
+Your public key has been saved in /home/pi/.ssh/id_rsa.pub.
+The key fingerprint is:
+15:81:d2:7a:c6:6c:0f:ec:b0:b6:d4:18:b8:d1:41:48 你注册使用的邮箱
+</pre>
+
+
+之后会在目录下生成<br />
+私钥 id_rsa 和公钥 id_rsa.pub 这两个文件<br />
+用文本工具打开公钥文件 ~/.ssh/id_rsa.pub ，复制里面的所有内容到gitcafe的账号的SSH 公钥管理。<br />
+<br />
+
+测试
+<pre>
+ssh -T git@gitcafe.com
+</pre>
+如果显示如下信息表示已经成功<br />
+Hi hisen! You've successfully authenticated, but GitCafe does not provide shell access.<br />
+<br />
+完成，再次push代码
+<pre>
+git push origin gitcafe-pages
+</pre>
+
+## 自定义域名
+这个也区别与github，github是通过CNAME控制。而gitcafe是通过后台设置的。
+项目管理->自定义域名->新增。如添加blog.kadang.com<br />
+然后添加一条A记录，ip指向到117.79.146.98
