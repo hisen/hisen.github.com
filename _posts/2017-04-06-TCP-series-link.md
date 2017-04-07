@@ -5,7 +5,7 @@ category: php
 keywords: 魔术方法
 ---
 
-####nc模拟GET请求 
+#### nc模拟GET请求 
 ```
 nc lumen.weipaitang.com 80<<EOF  
 HEAD / HTTP/1.1  
@@ -14,7 +14,7 @@ Host:weipaitang.com
 EOF  
 ```
 
-####TCPDUMP抓包
+#### TCPDUMP抓包
 ```
 sudo tcpdump -i any tcp port 80 -S
 ```
@@ -24,7 +24,7 @@ sudo tcpdump -i any tcp port 80 -S
 -S表明打印TCP 数据包的顺序号时, 使用绝对的顺序号, 而不是相对的顺序号.比如我第一次用tcpdump查看tcp的三次握手时发现第三次握手的ack=1,这个ack就是相对的，因为tcpdump只在SYN包中显示绝对顺序号，而非SYN包则显示相对的，为了便于观察，在抓包时都采用来绝对的顺序号
   
   
-####抓包数据
+#### 抓包数据
 ```
 18:02:03.399608 IP 172.16.30.74.53409 > 172.16.30.38.http: Flags [S], seq 3348550982, win 65535, options [mss 1460,nop,wscale 5,nop,nop,TS val 618940877 ecr 0,sackOK,eol], length 0
 18:02:03.399732 IP 172.16.30.38.http > 172.16.30.74.53409: Flags [S.], seq 285815051, ack 3348550983, win 28960, options [mss 1460,sackOK,TS val 38896158 ecr 618940877,nop,wscale 7], length 0
@@ -53,5 +53,5 @@ RST= RESET  异常关闭连接
 ```
     
 
-####备注
+#### 备注
 seq有相对值和绝对值，如果不加-S参数，第三次握手的时候ACK=1(基于第一次握手的seq，其相对值是0)，
