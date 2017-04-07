@@ -25,7 +25,7 @@ sudo tcpdump -i any tcp port 80 -S
   
   
 #### 抓包数据 ####
-```
+<pre>
 18:02:03.399608 IP 172.16.30.74.53409 > 172.16.30.38.http: Flags [S], seq 3348550982, win 65535, options [mss 1460,nop,wscale 5,nop,nop,TS val 618940877 ecr 0,sackOK,eol], length 0
 18:02:03.399732 IP 172.16.30.38.http > 172.16.30.74.53409: Flags [S.], seq 285815051, ack 3348550983, win 28960, options [mss 1460,sackOK,TS val 38896158 ecr 618940877,nop,wscale 7], length 0
 18:02:03.400768 IP 172.16.30.74.53409 > 172.16.30.38.http: Flags [.], ack 285815052, win 4117, options [nop,nop,TS val 618940878 ecr 38896158], length 0
@@ -33,7 +33,8 @@ sudo tcpdump -i any tcp port 80 -S
 18:02:03.405863 IP 172.16.30.38.http > 172.16.30.74.53409: Flags [.], ack 3348551000, win 227, options [nop,nop,TS val 38896159 ecr 618940883], length 0
 18:02:03.405986 IP 172.16.30.74.53409 > 172.16.30.38.http: Flags [F.], seq 3348551000, ack 285815052, win 4117, options [nop,nop,TS val 618940883 ecr 38896158], length 0
 18:02:03.406630 IP 172.16.30.38.http > 172.16.30.74.53409: Flags [P.], seq 285815052:285815286, ack 3348551001, win 227, options [nop,nop,TS val 38896160 ecr 618940883], length 234: HTTP: HTTP/1.1 200 OK
-```
+</pre>  
+
 ```
 18:02:03 （时间）  
 399608    (ID)  
