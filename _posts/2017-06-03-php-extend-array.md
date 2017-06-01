@@ -95,7 +95,7 @@ PHP_FUNCTION(arr_tianchong)
                         result = strpprintf(0, "%s%s", Z_STRVAL_P(prefix_entry), Z_STRVAL_P(entry));
                 }
             ZVAL_STR(&value, result); /*设置值为字符串*/
-            zend_hash_index_add(Z_ARRVAL_P(return_value), ++i, &value);
+            zend_hash_index_add(Z_ARRVAL_P(return_value), i++, &value);
         }ZEND_HASH_FOREACH_END();
     }ZEND_HASH_FOREACH_END();
 }
