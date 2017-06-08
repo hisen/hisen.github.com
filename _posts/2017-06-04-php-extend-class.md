@@ -91,7 +91,7 @@ PHP_MINIT_FUNCTION(helloWorld)
 }
 ```
 
-访问修饰符
+####访问修饰符
 
 ```
 ZEND_ACC_PUBLIC    public
@@ -104,14 +104,14 @@ ZEND_ACC_PROTECTED  protected
 
 
 
-类属性读取
+####类属性读取
 
 ```
 zend_read_property
 zend_read_static_property  静态属性
 ```
 
-更新对象的属性
+####更新对象的属性
 
 ```
 ZEND_API int zend_declare_property_ex(zend_class_entry *ce, zend_string *name, zval *property, int access_type, zend_string *doc_comment);

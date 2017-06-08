@@ -44,7 +44,7 @@ PHP_INI_BEGIN()
 PHP_INI_END()
 ```
 
-STD_PHP_INI_ENTRY 宏参数表  
+####STD_PHP _INI _ENTRY 宏参数表  
 
 ```
 default_value	如果没有在INI文件中指定，条目的默认值。默认值始终是一个字符串。
@@ -78,7 +78,7 @@ struct_ptr	全局结构名。如果使用全局变量机制，该名为myfile_gl
 helloWorld.global_value = 99
 ```
 
-编写函数获取常量  
+####编写函数获取常量  
 
 ```
 PHP_FUNCTION(helloWorld_ini)
@@ -100,7 +100,7 @@ const zend_function_entry helloWorld_functions[] = {
 };
 ```
 
-测试  
+####测试  
 
 ```
 <?php
@@ -109,7 +109,7 @@ helloWorld_change_ini();
 var_dump(helloWorld_ini()); // 100
 ```
 
-访问级别    
+####访问级别    
 
 ```
 PHP_INI_USER | 可在用户脚本（例如 ini_set()）或 Windows 注册表（自 PHP 5.3 起）以及 .user.ini 中设定
@@ -119,7 +119,7 @@ PHP_INI_ALL | 可在任何地方设定
 ```
 
 
-参考  
+####参考  
 http://www.laruence.com/2009/04/28/719.html  
 https://github.com/qzfzz/php7-extension-dev-book/blob/master/12.4.md
 

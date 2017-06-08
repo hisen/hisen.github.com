@@ -103,7 +103,7 @@ PHP_FUNCTION(arr_tianchong)
 
 以下是php内核一些宏API的整理说明
 
-数组
+####数组
 
 ```
 数组的初始化
@@ -150,7 +150,7 @@ Z_STRVAL_P(entry)
 ```
 
 
-类型的判断
+####类型的判断
 
 ```
 获取类型的宏
@@ -185,7 +185,7 @@ Z_STRVAL_P(entry)
 ```
 
 
-类型转换
+####类型转换
 
 ```
 ZEND_API void convert_to_long(zval *op);
@@ -197,7 +197,7 @@ ZEND_API void convert_to_object(zval *op);
 ZEND_API void _convert_to_string(zval *op);
 ```
 
-zval取值
+####zval取值
 
 ```
 //操作整数的
